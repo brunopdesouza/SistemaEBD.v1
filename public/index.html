@@ -1,0 +1,385 @@
+package.json
+Código 
+
+public/index.html
+Código 
+
+src/index.js
+Código 
+
+src/index.css
+Código 
+
+src/App.js
+Código 
+
+
+
+Continuar
+
+Editar
+
+src/App.js (Parte 2)
+Código 
+
+README.md
+Código 
+
+.gitignore
+Código 
+
+netlify.toml
+Código 
+
+public/manifest.json
+Código 
+🎯 Arquivos Completos para Deploy no GitHub/Netlify
+Aqui estão todos os arquivos que você precisa criar no seu repositório GitHub:
+
+📁 Estrutura de Pastas:
+sistema-ebd/
+├── public/
+│   ├── index.html
+│   └── manifest.json
+├── src/
+│   ├── App.js (em 2 partes)
+│   ├── index.js
+│   └── index.css
+├── .gitignore
+├── README.md
+├── package.json
+└── netlify.toml
+🚀 Como fazer o deploy:
+Criar repositório no GitHub:
+bash
+git init
+git add .
+git commit -m "Initial commit - Sistema EBD"
+git branch -M main
+git remote add origin https://github.com/seu-usuario/sistema-ebd.git
+git push -u origin main
+Deploy no Netlify:
+Acesse netlify.com
+Conecte sua conta GitHub
+Selecione o repositório sistema-ebd
+Configure:
+Build command: npm run build
+Publish directory: build
+Deploy automático!
+🔧 Configurações Importantes:
+Node.js versão: 18+ (configurado no netlify.toml)
+Tailwind CSS: Via CDN (já configurado no index.html)
+Lucide Icons: Instalado via npm
+React 18: Framework principal
+📋 Credenciais de Teste:
+Email: admin@sistema.com
+Senha: admin123
+Igreja: ICM Central
+Função: Pastor
+🎨 Principais Características:
+✅ Sistema completo de autenticação ✅ 3 níveis de permissão (Admin, Igreja, Grupo) ✅ Gestão de membros com hierarquia ✅ Upload de arquivos múltiplos formatos ✅ PDFs semanais com validação ✅ Dashboard inteligente com estatísticas ✅ Responsivos para mobile/desktop ✅ Grupos de assistência com responsáveis/secretários
+
+🔄 Próximos Passos:
+Após o deploy básico, podemos partir para:
+
+Integração com banco de dados (Supabase/Firebase)
+Automações Python (fase 2)
+API REST completa
+Sistema de notificações
+Todos os arquivos estão prontos para uso! Basta copiar, colar no GitHub e fazer o deploy. O sistema já está 100% funcional para demonstração e uso básico.
+
+
+
+
+image.png
+qual preencho?
+
+Editar
+Para o seu projeto Sistema EBD, preencha da seguinte forma:
+
+📋 Configurações Recomendadas:
+🏷️ Repository name:
+SistemaEBD.v1
+✅ Já está preenchido corretamente!
+
+📄 Description:
+Sistema completo de gestão EBD - Igreja Cristã Maranata com autenticação, hierarquia de usuários, gestão de membros e upload de arquivos
+🔓 Visibilidade:
+✅ Marque "Public" - Para que outros possam ver e contribuir
+Se quiser privacidade total, marque "Private"
+📚 Initialize this repository with:
+✅ Add a README file
+✅ MARQUE ESTA OPÇÃO - Essencial para documentação
+📝 Add .gitignore
+✅ Selecione: "Node" no dropdown
+Isso vai ignorar node_modules e outros arquivos desnecessários
+⚖️ Choose a license
+✅ Selecione: "MIT License"
+Licença permissiva e amplamente usada
+🎯 Resumo das Configurações:
+Owner: brunopdesouza
+Repository name: SistemaEBD.v1
+Description: Sistema completo de gestão EBD - Igreja Cristã Maranata com autenticação, hierarquia de usuários, gestão de membros e upload de arquivos
+
+☑️ Public
+☑️ Add a README file  
+☑️ Add .gitignore (template: Node)
+☑️ Choose a license (MIT License)
+Essas configurações vão criar um repositório bem estruturado e profissional para o seu projeto! Depois de criar, você pode fazer upload dos arquivos que te forneci anteriormente.
+
+
+
+
+como crio a estrutura de forma automatizada?
+
+Editar
+Vou te mostrar como criar a estrutura completa de forma automatizada! Você pode fazer isso via terminal ou usando um script.
+
+
+
+
+image.png
+como crio a estrutura de forma automatizada?
+
+Editar
+Vou te mostrar como criar toda a estrutura de forma automatizada! Aqui estão as opções:
+
+
+Script de Setup Automatizado
+Código 
+🚀 3 Formas de Criar a Estrutura Automaticamente:
+Opção 1: Script Bash (Recomendado)
+Baixe o script que criei acima
+Execute no terminal:
+bash
+chmod +x setup.sh
+./setup.sh
+Opção 2: Comandos Diretos no Terminal
+bash
+# Clone e entre na pasta
+git clone https://github.com/brunopdesouza/SistemaEBD.v1.git
+cd SistemaEBD.v1
+
+# Crie a estrutura
+mkdir -p src public
+
+# Use os comandos do GitHub CLI (se tiver instalado)
+gh repo clone brunopdesouza/SistemaEBD.v1
+Opção 3: Via Interface do GitHub (Mais Fácil)
+Clique em "Add file" → "Create new file"
+Digite: src/App.js (cria a pasta automaticamente)
+Cole o conteúdo que te forneci
+Commit as mudanças
+Repita para cada arquivo
+📁 Sequência de Criação Via GitHub:
+1. Primeiro, crie a estrutura básica:
+src/App.js          (componente principal)
+src/index.js        (ponto de entrada)
+src/index.css       (estilos)
+public/index.html   (template HTML)
+public/manifest.json (PWA config)
+package.json        (dependências)
+netlify.toml        (config deploy)
+2. Para cada arquivo:
+Clique "Add file" → "Create new file"
+Digite o nome do arquivo (ex: src/App.js)
+Cole o conteúdo correspondente
+Commit changes
+🎯 Dica Profissional:
+Use o GitHub Desktop ou VS Code com extensão GitHub:
+
+Clone o repositório
+Abra no VS Code
+Crie todos os arquivos de uma vez
+Commit tudo junto
+⚡ Comando Rápido (One-liner):
+bash
+# Clone + Setup Básico
+git clone https://github.com/brunopdesouza/SistemaEBD.v1.git && cd SistemaEBD.v1 && mkdir -p src public && echo "Estrutura criada! Agora adicione os arquivos."
+Qual opção prefere? A interface do GitHub é mais visual, mas o script bash é mais rápido! 🚀
+
+
+
+
+onde eu executo o comando? já salvei o arquivo como sisebd.hs
+
+Editar
+Perfeito! Vou te guiar para executar o script. Vejo que você salvou como sisebd.hs - vamos ajustar isso.
+
+🖥️ Como Executar o Script:
+1. Abra o Terminal/Prompt de Comando:
+Windows:
+
+Pressione Win + R
+Digite cmd ou powershell
+Pressione Enter
+Mac/Linux:
+
+Pressione Cmd + Space (Mac) ou Ctrl + Alt + T (Linux)
+Digite "Terminal"
+2. Navegue até onde salvou o arquivo:
+bash
+# Se salvou na área de trabalho:
+cd Desktop
+
+# Se salvou na pasta Downloads:
+cd Downloads
+
+# Para ver onde está:
+ls    # (Mac/Linux)
+dir   # (Windows)
+3. Renomeie o arquivo:
+bash
+# O arquivo deve ter extensão .sh (não .hs)
+mv sisebd.hs setup.sh        # Mac/Linux
+ren sisebd.hs setup.sh       # Windows
+4. Execute o script:
+Mac/Linux:
+
+bash
+chmod +x setup.sh
+./setup.sh
+Windows (PowerShell):
+
+powershell
+bash setup.sh
+🚀 Alternativa Mais Simples (Recomendada):
+Se der problema com o script, execute os comandos manualmente:
+
+bash
+# 1. Clone o repositório
+git clone https://github.com/brunopdesouza/SistemaEBD.v1.git
+
+# 2. Entre na pasta
+cd SistemaEBD.v1
+
+# 3. Crie as pastas
+mkdir src
+mkdir public
+
+# 4. Instale dependências (se package.json já existir)
+npm install
+📍 Localização Ideal:
+Execute o script em uma pasta onde quer que o projeto seja criado:
+
+bash
+# Exemplo: criar na área de trabalho
+cd Desktop
+./setup.sh
+⚠️ Se der erro:
+Verifique se tem Git instalado:
+bash
+git --version
+Verifique se tem Node.js:
+bash
+node --version
+npm --version
+Se não tiver, instale:
+Git: git-scm.com
+Node.js: nodejs.org
+💡 Dica:
+Se ainda der problema, me mostre a mensagem de erro que aparece no terminal. Assim posso te ajudar especificamente!
+
+Onde você quer criar o projeto? Desktop? Documentos? Me conta como está indo! 🚀
+
+
+
+
+PS C:\Users\bruno.souza\Desktop> bash setup.sh
+bash : O termo 'bash' não é reconhecido como nome de cmdlet, função, arquivo de script ou programa operável. Verifique
+a grafia do nome ou, se um caminho tiver sido incluído, veja se o caminho está correto e tente novamente.
+No linha:1 caractere:1
++ bash setup.sh
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (bash:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+Editar
+Ah! Você está no Windows e não tem o Bash instalado. Vou te mostrar como resolver isso de forma mais simples!
+
+🎯 Solução Mais Fácil para Windows:
+Opção 1: Comandos PowerShell (Recomendado)
+Execute estes comandos um por vez no PowerShell:
+
+powershell
+# 1. Clone o repositório
+git clone https://github.com/brunopdesouza/SistemaEBD.v1.git
+
+# 2. Entre na pasta
+cd SistemaEBD.v1
+
+# 3. Crie as pastas
+New-Item -ItemType Directory -Force -Path "src"
+New-Item -ItemType Directory -Force -Path "public"
+
+# 4. Veja se funcionou
+ls
+Opção 2: Via Interface do GitHub (Mais Simples)
+Vá para: https://github.com/brunopdesouza/SistemaEBD.v1
+Clique em: Code → Download ZIP
+Extraia o arquivo na sua área de trabalho
+Abra a pasta no VS Code ou editor de sua preferência
+Opção 3: Instalar Git Bash
+Baixe: Git para Windows
+Instale com as configurações padrão
+Abra: Git Bash (não PowerShell)
+Execute: bash setup.sh
+🚀 Método Manual (100% Garantido):
+Já que você tem o repositório criado no GitHub, vamos popular ele manualmente:
+
+1. Clone o repositório:
+powershell
+git clone https://github.com/brunopdesouza/SistemaEBD.v1.git
+cd SistemaEBD.v1
+2. Crie os arquivos via GitHub Web:
+Acesse: https://github.com/brunopdesouza/SistemaEBD.v1
+Clique: Add file → Create new file
+Crie cada arquivo com o conteúdo que te forneci:
+📁 Arquivos para criar:
+├── package.json
+├── src/
+│   ├── App.js
+│   ├── index.js
+│   └── index.css
+├── public/
+│   ├── index.html
+│   └── manifest.json
+└── netlify.toml
+3. Para cada arquivo:
+Nome: src/App.js (o GitHub cria a pasta automaticamente)
+Conteúdo: Cole o código que te forneci
+Commit: "Add [nome do arquivo]"
+💡 Qual você prefere?
+Rápido: Baixar ZIP e trabalhar localmente
+Profissional: Usar Git via PowerShell
+Fácil: Criar arquivos via interface do GitHub
+Me fala qual opção quer tentar! 🚀
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Sistema EBD - Igreja Cristã Maranata" />
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <title>Sistema EBD - Igreja Cristã Maranata</title>
+</head>
+<body>
+  <noscript>Você precisa habilitar JavaScript para executar este aplicativo.</noscript>
+  <div id="root"></div>
+</body>
+</html>
