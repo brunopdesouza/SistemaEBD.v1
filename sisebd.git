@@ -1,0 +1,234 @@
+#!/bin/bash
+
+# 🚀 Script de Setup Automatizado - Sistema EBD
+# Execute este script na pasta onde quer criar o projeto
+
+echo "🚀 Criando estrutura do Sistema EBD..."
+
+# Clonar o repositório
+git clone https://github.com/brunopdesouza/SistemaEBD.v1.git
+cd SistemaEBD.v1
+
+echo "📁 Criando estrutura de pastas..."
+
+# Criar pastas
+mkdir -p src
+mkdir -p public
+
+echo "📝 Criando package.json..."
+
+# Criar package.json
+cat > package.json << 'EOF'
+{
+  "name": "sistema-ebd",
+  "version": "1.0.0",
+  "description": "Sistema de Gestão EBD - Igreja Cristã Maranata",
+  "main": "src/App.js",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "lucide-react": "^0.263.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "homepage": "."
+}
+EOF
+
+echo "🌐 Criando public/index.html..."
+
+# Criar public/index.html
+cat > public/index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Sistema EBD - Igreja Cristã Maranata" />
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <title>Sistema EBD - Igreja Cristã Maranata</title>
+</head>
+<body>
+  <noscript>Você precisa habilitar JavaScript para executar este aplicativo.</noscript>
+  <div id="root"></div>
+</body>
+</html>
+EOF
+
+echo "📱 Criando public/manifest.json..."
+
+# Criar public/manifest.json
+cat > public/manifest.json << 'EOF'
+{
+  "short_name": "Sistema EBD",
+  "name": "Sistema EBD - Igreja Cristã Maranata",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff"
+}
+EOF
+
+echo "⚛️ Criando src/index.js..."
+
+# Criar src/index.js
+cat > src/index.js << 'EOF'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+EOF
+
+echo "🎨 Criando src/index.css..."
+
+# Criar src/index.css
+cat > src/index.css << 'EOF'
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Customizações específicas */
+.transition-colors {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Estados de loading */
+.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Responsive utilities */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+EOF
+
+echo "🌐 Criando netlify.toml..."
+
+# Criar netlify.toml
+cat > netlify.toml << 'EOF'
+[build]
+  publish = "build"
+  command = "npm run build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  NODE_VERSION = "18"
+EOF
+
+echo "📋 Arquivos App.js serão criados manualmente..."
+
+echo "📦 Instalando dependências..."
+npm install
+
+echo "✅ Estrutura criada com sucesso!"
+echo ""
+echo "🎯 Próximos passos:"
+echo "1. Copie o conteúdo do App.js que forneci anteriormente"
+echo "2. Execute: npm start"
+echo "3. Acesse: http://localhost:3000"
+echo ""
+echo "🚀 Para fazer deploy:"
+echo "git add ."
+echo "git commit -m 'Setup inicial completo'"
+echo "git push origin main"
