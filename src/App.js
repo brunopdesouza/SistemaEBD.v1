@@ -16,7 +16,6 @@ import {
   LogIn,
   UserPlus,
   Church,
-  UsersRound,
   FileText,
   Calendar,
   Eye,
@@ -625,7 +624,7 @@ const SistemaEBD = () => {
                 <p className="text-sm text-gray-600">Total Membros</p>
                 <p className="text-2xl font-bold text-gray-800">{estatisticas.total_membros}</p>
               </div>
-              <UsersRound className="h-8 w-8 text-green-500" />
+              <Users className="h-8 w-8 text-green-500" />
             </div>
           </div>
 
@@ -645,7 +644,7 @@ const SistemaEBD = () => {
                 <p className="text-sm text-gray-600">Grupos Assistência</p>
                 <p className="text-2xl font-bold text-gray-800">{estatisticas.total_grupos}</p>
               </div>
-              <UsersRound className="h-8 w-8 text-purple-500" />
+              <Users className="h-8 w-8 text-purple-500" />
             </div>
           </div>
         </div>
@@ -729,7 +728,7 @@ const SistemaEBD = () => {
   const Navigation = () => {
     const menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-      { id: 'membros', label: 'Membros', icon: UsersRound },
+      { id: 'membros', label: 'Membros', icon: Users },
       { id: 'upload', label: 'Importar Dados', icon: Upload },
       { id: 'pdf', label: 'PDF Semanal', icon: FileImage },
       { id: 'perfis', label: 'Perfis', icon: Shield },
@@ -825,7 +824,7 @@ const SistemaEBD = () => {
       case 'dashboard':
         return <Dashboard />;
       case 'membros':
-        return <SimpleComponent title="Gestão de Membros" icon={UsersRound} />;
+        return <SimpleComponent title="Gestão de Membros" icon={Users} />;
       case 'upload':
         return <SimpleComponent title="Importação de Dados" icon={Upload} />;
       case 'pdf':
