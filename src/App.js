@@ -408,6 +408,232 @@ const SistemaEBD = () => {
                 <input
                   type="text"
                   required
+                  value={pdfForm.titulo}
+                  onChange={(e) => setPdfForm({...pdfForm, titulo: e.target.value})}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ex: Questionário EBD - Semana 46"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Semana/Ano *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={pdfForm.semana}
+                  onChange={(e) => setPdfForm({...pdfForm, semana: e.target.value})}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ex: 46/2024"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Arquivo PDF *
+              </label>
+              <input
+                type="file"
+                accept=".pdf"
+                required
+                onChange={(e) => setPdfForm({...pdfForm, arquivo: e.target.files[0]})}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+            >
+              Enviar PDF para Validação
+            </button>
+          </form>
+
+          <div className="bg-yellow-50 p-4 rounded-lg mb-6">
+            <h4 className="font-medium mb-2 flex items-center">
+              <AlertCircle className="mr-2 h-4 w-4 text-yellow-600" />
+              Processo de Validação:
+            </h4>
+            <div className="text-sm text-yellow-800 space-y-1">
+              <p>1. Upload do PDF com título e semana</p>
+              <p>2. Validação automática do conteúdo</p>
+              <p>3. Disponibilização para todos os usuários após aprovação</p>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-4">PDFs Disponíveis</h3>
+            <div className="space-y-3">
+              {validatedPDFs.map(pdf => (
+                <div key={pdf.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">{pdf.titulo}</p>
+                    <p className="text-sm text-gray-600">Semana {pdf.semana} • {pdf.igreja}</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      pdf.validado ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {pdf.validado ? 'Validado' : 'Pendente'}
+                    </span>
+                    <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                      Download
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Navegação Principal
+  const Navigation = () => {
+    const menuItems = [
+      { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+      { id: 'membros', label: 'Membros', icon: UsersRound },
+      { id: 'upload', label: 'Importar Dados', icon: Upload },
+      { id: 'pdf', label: 'PDF Semanal', icon: FileImage },
+      { id: 'perfis', label: 'Perfis', icon: Shield },
+      { id: 'configuracoes', label: 'Configurações', icon: Settings }
+    ];
+
+    // Filtrar itens baseado no perfil do usuário
+    const filteredItems = menuItems.filter(item => {
+      if (currentUser?.perfil === 'grupo') {
+        return ['dashboard', 'membros', 'upload'].includes(item.id);
+      }
+      if (currentUser?.perfil === 'igreja') {
+        return ['dashboard', 'membros', 'upload', 'pdf'].includes(item.id);
+      }
+      return true; // admin vê tudo
+    });
+
+    return (
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8">
+            {filteredItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setCurrentView(item.id)}
+                  className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 transition-colors ${
+                    currentView === item.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon className="h-4 w-4 mr-2" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+    );
+  };
+
+  // Header do Sistema
+  const Header = () => (
+    <header className="bg-white shadow-sm border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center">
+            <BookOpen className="h-8 w-8 text-blue-600 mr-3" />
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Sistema EBD</h1>
+              <p className="text-xs text-gray-500">Igreja Cristã Maranata</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-gray-600">
+              {new Date().toLocaleDateString('pt-BR')}
+            </span>
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <User className="h-5 w-5 text-white" />
+              </div>
+              <div className="text-sm">
+                <p className="font-medium">{currentUser?.nome}</p>
+                <p className="text-gray-500">{currentUser?.funcao}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setCurrentUser(null);
+                setCurrentView('login');
+                showMessage('success', 'Logout realizado com sucesso!');
+              }}
+              className="text-gray-500 hover:text-gray-700 text-sm font-medium"
+            >
+              Sair
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+
+  // Renderização Principal
+  const renderCurrentView = () => {
+    if (!currentUser) {
+      return currentView === 'register' ? <RegisterScreen /> : <LoginScreen />;
+    }
+
+    switch (currentView) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'membros':
+        return <MembrosManagement />;
+      case 'upload':
+        return <FileUploadComponent />;
+      case 'pdf':
+        return <PDFUploadComponent />;
+      case 'perfis':
+        return <PerfilManagement />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {currentUser && <Header />}
+      {currentUser && <Navigation />}
+      
+      <main className={currentUser ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" : ""}>
+        {renderCurrentView()}
+      </main>
+
+      {currentUser && (
+        <footer className="bg-white border-t mt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex justify-between items-center text-sm text-gray-600">
+              <p>© 2025 Sistema EBD - Igreja Cristã Maranata</p>
+              <div className="flex items-center space-x-4">
+                <span className="flex items-center">
+                  <div className="h-2 w-2 bg-green-400 rounded-full mr-2"></div>
+                  Sistema Online
+                </span>
+              </div>
+            </div>
+          </div>
+        </footer>
+      )}
+    </div>
+  );
+};
+
+export default SistemaEBD;text"
+                  required
                   value={formData.nome}
                   onChange={(e) => setFormData({...formData, nome: e.target.value})}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -719,17 +945,6 @@ const SistemaEBD = () => {
 
   // Componente Gestão de Perfis
   const PerfilManagement = () => {
-    const [usuarios, setUsuarios] = useState([
-      {
-        id: '1',
-        nome: 'Administrador Sistema',
-        email: 'admin@sistema.com',
-        igreja: 'ICM Central',
-        funcao: 'Pastor',
-        perfil: 'admin',
-        ativo: true
-      }
-    ]);
     const [editingUser, setEditingUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -838,19 +1053,6 @@ const SistemaEBD = () => {
 
   // Componente Gestão de Membros
   const MembrosManagement = () => {
-    const [membros, setMembros] = useState([
-      {
-        id: '1',
-        nome: 'João Silva',
-        sexo: 'M',
-        cpf: '12345678901',
-        classe: 'Adultos',
-        situacao: 'Membro',
-        telefone: '11888888888',
-        igreja: 'ICM Central',
-        grupo_assistencia: 'Grupo 1 - Adultos'
-      }
-    ]);
     const [showForm, setShowForm] = useState(false);
     const [editingMember, setEditingMember] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -871,7 +1073,6 @@ const SistemaEBD = () => {
       if (currentUser?.perfil === 'admin') {
         return gruposAssistencia;
       } else if (currentUser?.perfil === 'igreja') {
-        // Em um sistema real, isso viria do banco de dados filtrado por igreja
         return gruposAssistencia;
       } else {
         return [currentUser?.grupo_assistencia].filter(Boolean);
@@ -920,7 +1121,6 @@ const SistemaEBD = () => {
       
       const matchesGrupo = selectedGrupo === '' || membro.grupo_assistencia === selectedGrupo;
       
-      // Filtrar por permissão do usuário
       let hasPermission = false;
       if (currentUser?.perfil === 'admin') hasPermission = true;
       else if (currentUser?.perfil === 'igreja') hasPermission = membro.igreja === currentUser.igreja;
@@ -931,7 +1131,6 @@ const SistemaEBD = () => {
 
     return (
       <div className="space-y-6">
-        {/* Card de Informações do Grupo (quando usuário é de grupo específico) */}
         {currentUser?.perfil === 'grupo' && currentUser?.grupo_assistencia && (
           <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -1275,7 +1474,8 @@ const SistemaEBD = () => {
       });
       showMessage('success', `${files.length} arquivo(s) carregado(s) com sucesso!`);
     };
-const handleDrop = (e) => {
+
+    const handleDrop = (e) => {
       e.preventDefault();
       setDragOver(false);
       const files = e.dataTransfer.files;
@@ -1444,230 +1644,4 @@ const handleDrop = (e) => {
                   Título do Questionário *
                 </label>
                 <input
-                  type="text"
-                  required
-                  value={pdfForm.titulo}
-                  onChange={(e) => setPdfForm({...pdfForm, titulo: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ex: Questionário EBD - Semana 46"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Semana/Ano *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={pdfForm.semana}
-                  onChange={(e) => setPdfForm({...pdfForm, semana: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ex: 46/2024"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Arquivo PDF *
-              </label>
-              <input
-                type="file"
-                accept=".pdf"
-                required
-                onChange={(e) => setPdfForm({...pdfForm, arquivo: e.target.files[0]})}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-            >
-              Enviar PDF para Validação
-            </button>
-          </form>
-
-          <div className="bg-yellow-50 p-4 rounded-lg mb-6">
-            <h4 className="font-medium mb-2 flex items-center">
-              <AlertCircle className="mr-2 h-4 w-4 text-yellow-600" />
-              Processo de Validação:
-            </h4>
-            <div className="text-sm text-yellow-800 space-y-1">
-              <p>1. Upload do PDF com título e semana</p>
-              <p>2. Validação automática do conteúdo</p>
-              <p>3. Disponibilização para todos os usuários após aprovação</p>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-4">PDFs Disponíveis</h3>
-            <div className="space-y-3">
-              {validatedPDFs.map(pdf => (
-                <div key={pdf.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{pdf.titulo}</p>
-                    <p className="text-sm text-gray-600">Semana {pdf.semana} • {pdf.igreja}</p>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      pdf.validado ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {pdf.validado ? 'Validado' : 'Pendente'}
-                    </span>
-                    <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                      Download
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Navegação Principal
-  const Navigation = () => {
-    const menuItems = [
-      { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-      { id: 'membros', label: 'Membros', icon: UsersRound },
-      { id: 'upload', label: 'Importar Dados', icon: Upload },
-      { id: 'pdf', label: 'PDF Semanal', icon: FileImage },
-      { id: 'perfis', label: 'Perfis', icon: Shield },
-      { id: 'configuracoes', label: 'Configurações', icon: Settings }
-    ];
-
-    // Filtrar itens baseado no perfil do usuário
-    const filteredItems = menuItems.filter(item => {
-      if (currentUser?.perfil === 'grupo') {
-        return ['dashboard', 'membros', 'upload'].includes(item.id);
-      }
-      if (currentUser?.perfil === 'igreja') {
-        return ['dashboard', 'membros', 'upload', 'pdf'].includes(item.id);
-      }
-      return true; // admin vê tudo
-    });
-
-    return (
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            {filteredItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setCurrentView(item.id)}
-                  className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 transition-colors ${
-                    currentView === item.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </nav>
-    );
-  };
-
-  // Header do Sistema
-  const Header = () => (
-    <header className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <BookOpen className="h-8 w-8 text-blue-600 mr-3" />
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Sistema EBD</h1>
-              <p className="text-xs text-gray-500">Igreja Cristã Maranata</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">
-              {new Date().toLocaleDateString('pt-BR')}
-            </span>
-            <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <User className="h-5 w-5 text-white" />
-              </div>
-              <div className="text-sm">
-                <p className="font-medium">{currentUser?.nome}</p>
-                <p className="text-gray-500">{currentUser?.funcao}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setCurrentUser(null);
-                setCurrentView('login');
-                showMessage('success', 'Logout realizado com sucesso!');
-              }}
-              className="text-gray-500 hover:text-gray-700 text-sm font-medium"
-            >
-              Sair
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-
-  // Renderização Principal
-  const renderCurrentView = () => {
-    if (!currentUser) {
-      return currentView === 'register' ? <RegisterScreen /> : <LoginScreen />;
-    }
-
-    switch (currentView) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'membros':
-        return <MembrosManagement />;
-      case 'upload':
-        return <FileUploadComponent />;
-      case 'pdf':
-        return <PDFUploadComponent />;
-      case 'perfis':
-        return <PerfilManagement />;
-      default:
-        return <Dashboard />;
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-100">
-      {currentUser && <Header />}
-      {currentUser && <Navigation />}
-      
-      <main className={currentUser ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" : ""}>
-        {renderCurrentView()}
-      </main>
-
-      {currentUser && (
-        <footer className="bg-white border-t mt-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex justify-between items-center text-sm text-gray-600">
-              <p>© 2025 Sistema EBD - Igreja Cristã Maranata</p>
-              <div className="flex items-center space-x-4">
-                <span className="flex items-center">
-                  <div className="h-2 w-2 bg-green-400 rounded-full mr-2"></div>
-                  Sistema Online
-                </span>
-              </div>
-            </div>
-          </div>
-        </footer>
-      )}
-    </div>
-  );
-};
-
-export default SistemaEBD;
+                  type="
