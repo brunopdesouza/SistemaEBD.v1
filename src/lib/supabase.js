@@ -1,11 +1,25 @@
 // src/lib/supabase.js
 import { createClient } from '@supabase/supabase-js'
-import { useState, useEffect } from 'react' // MOVIDO PARA O TOPO
+import { useState, useEffect } from 'react'
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// ============================================================
+// FUNÇÃO PARA LIMPAR NOMES DE ARQUIVO
+// ============================================================
+const sanitizeFileName = (fileName) => {
+  return fileName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/[^a-zA-Z0-9.-]/g, '_') // Substitui caracteres especiais por _
+    .replace(/_{2,}/g, '_') // Remove múltiplos underscores
+    .replace(/^_+|_+$/g, '') // Remove underscores do início e fim
+    .toLowerCase()
+    .substring(0, 100) // Limita tamanho do nome
+}
 
 // ============================================================
 // SERVIÇOS DE DADOS INTEGRADOS AO SEU SISTEMA ATUAL
@@ -17,20 +31,30 @@ export const dataService = {
   // ============================================================
   
   async getConfig() {
-    const { data, error } = await supabase
-      .from('configuracoes')
-      .select('chave, valor')
-      .eq('publico', true)
-    
-    if (error) throw error
-    
-    // Converter para objeto
-    const config = {}
-    data.forEach(item => {
-      config[item.chave] = JSON.parse(item.valor)
-    })
-    
-    return config
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('chave, valor')
+        .eq('publico', true)
+      
+      if (error) throw error
+      
+      // Converter para objeto
+      const config = {}
+      data.forEach(item => {
+        config[item.chave] = JSON.parse(item.valor)
+      })
+      
+      return config
+    } catch (error) {
+      console.error('Erro getConfig:', error)
+      // Retornar fallback
+      return {
+        igrejas: ['Nova Brasília 1', 'ICM Central', 'ICM Vila Nova'],
+        funcoes: ['Pastor', 'Evangelista', 'Diácono', 'Membro'],
+        grupos_assistencia: ['Grupo 1 - Adultos', 'Grupo 2 - Jovens']
+      }
+    }
   },
 
   // ============================================================
@@ -38,13 +62,26 @@ export const dataService = {
   // ============================================================
   
   async getEstatisticas() {
-    const { data, error } = await supabase
-      .from('estatisticas')
-      .select('*')
-      .single()
-    
-    if (error) throw error
-    return data
+    try {
+      const { data, error } = await supabase
+        .from('estatisticas')
+        .select('*')
+        .single()
+      
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Erro getEstatisticas:', error)
+      // Retornar dados padrão
+      return {
+        total_usuarios: 1,
+        total_membros: 3,
+        total_igrejas: 6,
+        total_grupos: 7,
+        questionarios_ativos: 1,
+        total_respostas: 2
+      }
+    }
   },
 
   // ============================================================
@@ -104,22 +141,27 @@ export const dataService = {
   // ============================================================
   
   async getQuestionarios(filters = {}) {
-    let query = supabase
-      .from('questionarios')
-      .select(`
-        *,
-        perguntas(*)
-      `)
-      .eq('ativo', true)
-    
-    if (filters.igreja) {
-      query = query.eq('igreja', filters.igreja)
+    try {
+      let query = supabase
+        .from('questionarios')
+        .select(`
+          *,
+          perguntas(*)
+        `)
+        .eq('ativo', true)
+      
+      if (filters.igreja) {
+        query = query.eq('igreja', filters.igreja)
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false })
+      
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Erro getQuestionarios:', error)
+      return []
     }
-    
-    const { data, error } = await query.order('created_at', { ascending: false })
-    
-    if (error) throw error
-    return data
   },
 
   async createQuestionario(questionario) {
@@ -165,57 +207,86 @@ export const dataService = {
   // ============================================================
   
   async createProfile(userData) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .insert(userData)
-      .select()
-      .single()
-    
-    if (error) throw error
-    return data
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert(userData)
+        .select()
+        .single()
+      
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Erro createProfile:', error)
+      return null
+    }
   },
 
   async getProfile(email) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('email', email)
-      .single()
-    
-    if (error) return null // Usuário não existe
-    return data
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .single()
+      
+      if (error) return null // Usuário não existe
+      return data
+    } catch (error) {
+      console.error('Erro getProfile:', error)
+      return null
+    }
   },
 
   // ============================================================
-  // UPLOAD DE ARQUIVOS
+  // UPLOAD DE ARQUIVOS - VERSÃO CORRIGIDA
   // ============================================================
   
   async uploadFile(file, bucket = 'uploads') {
-    const fileName = `${Date.now()}-${file.name}`
-    
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(fileName, file)
-    
-    if (error) throw error
-
-    // Registrar no banco
-    const { data: arquivo, error: dbError } = await supabase
-      .from('arquivos')
-      .insert({
-        nome_original: file.name,
-        nome_arquivo: fileName,
-        tipo_arquivo: file.type,
-        tamanho_bytes: file.size,
-        bucket: bucket,
-        url_download: data.path
+    try {
+      // Limpar nome do arquivo
+      const cleanFileName = sanitizeFileName(file.name)
+      const fileName = `${Date.now()}_${cleanFileName}`
+      
+      console.log('Upload:', {
+        original: file.name,
+        cleaned: cleanFileName,
+        final: fileName
       })
-      .select()
-      .single()
+      
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, file)
+      
+      if (error) {
+        console.error('Erro no storage upload:', error)
+        throw error
+      }
 
-    if (dbError) throw dbError
-    
-    return arquivo
+      // Registrar no banco
+      const { data: arquivo, error: dbError } = await supabase
+        .from('arquivos')
+        .insert({
+          nome_original: file.name,
+          nome_arquivo: fileName,
+          tipo_arquivo: file.type,
+          tamanho_bytes: file.size,
+          bucket: bucket,
+          url_download: data.path
+        })
+        .select()
+        .single()
+
+      if (dbError) {
+        console.error('Erro salvando arquivo no banco:', dbError)
+        throw dbError
+      }
+      
+      return arquivo
+    } catch (error) {
+      console.error('Erro completo no upload:', error)
+      throw new Error(`Erro no upload: ${error.message}`)
+    }
   },
 
   async getFileUrl(path, bucket = 'uploads') {
@@ -231,51 +302,66 @@ export const dataService = {
   // ============================================================
   
   async createJob(tipo, configuracao = {}, arquivos_input = []) {
-    const { data, error } = await supabase
-      .from('jobs')
-      .insert({
-        tipo,
-        configuracao,
-        arquivos_input
-      })
-      .select()
-      .single()
-    
-    if (error) throw error
-    return data
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .insert({
+          tipo,
+          configuracao,
+          arquivos_input
+        })
+        .select()
+        .single()
+      
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Erro createJob:', error)
+      throw error
+    }
   },
 
   async updateJob(jobId, updates) {
-    const { data, error } = await supabase
-      .from('jobs')
-      .update(updates)
-      .eq('id', jobId)
-      .select()
-      .single()
-    
-    if (error) throw error
-    return data
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .update(updates)
+        .eq('id', jobId)
+        .select()
+        .single()
+      
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Erro updateJob:', error)
+      throw error
+    }
   },
 
   async getJobs(filters = {}) {
-    let query = supabase
-      .from('jobs')
-      .select('*')
-    
-    if (filters.tipo) {
-      query = query.eq('tipo', filters.tipo)
-    }
-    
-    if (filters.status) {
-      query = query.eq('status', filters.status)
-    }
+    try {
+      let query = supabase
+        .from('jobs')
+        .select('*')
+      
+      if (filters.tipo) {
+        query = query.eq('tipo', filters.tipo)
+      }
+      
+      if (filters.status) {
+        query = query.eq('status', filters.status)
+      }
 
-    const { data, error } = await query
-      .order('tempo_inicio', { ascending: false })
-      .limit(50)
-    
-    if (error) throw error
-    return data
+      const { data, error } = await query
+        .order('tempo_inicio', { ascending: false })
+        .limit(50)
+      
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Erro getJobs:', error)
+      return []
+    }
   }
 }
 
