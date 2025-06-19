@@ -21,8 +21,13 @@ import {
   FileImage,
   CheckSquare,
   HelpCircle,
-  Save
+  Save,
+  Bot // NOVA IMPORTAÇÃO
 } from 'lucide-react';
+
+// NOVAS IMPORTAÇÕES PARA SUPABASE
+import { dataService, useSupabaseData } from './lib/supabase';
+import AutomationComponent from './components/AutomationComponent';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -52,15 +57,20 @@ function App() {
     perguntas: []
   });
 
-  const igrejasList = [
+  // HOOK PARA DADOS DO SUPABASE
+  const { config, loading: configLoading } = useSupabaseData();
+
+  // LISTAS DINÂMICAS DO SUPABASE COM FALLBACK
+  const igrejasList = config.igrejas || [
     'ICM Central',
     'ICM Vila Nova',
     'ICM Jardim das Flores',
     'ICM Centro',
-    'ICM Bairro Alto'
+    'ICM Bairro Alto',
+    'Nova Brasília 1' // GARANTIR QUE NOVA BRASÍLIA 1 ESTÁ INCLUÍDA
   ];
 
-  const funcoesList = [
+  const funcoesList = config.funcoes || [
     'Pastor',
     'Evangelista', 
     'Diácono',
@@ -72,7 +82,7 @@ function App() {
     'Membro'
   ];
 
-  const gruposAssistencia = [
+  const gruposAssistencia = config.grupos_assistencia || [
     'Grupo 1 - Adultos',
     'Grupo 2 - Jovens',
     'Grupo 3 - Adolescentes',
@@ -82,50 +92,79 @@ function App() {
     'Grupo 7 - Solteiros'
   ];
 
+  // CARREGAMENTO DE DADOS REAIS DO SUPABASE
   useEffect(() => {
-    setEstatisticas({
-      total_usuarios: 1,
-      total_membros: 1,
-      total_igrejas: 5,
-      total_grupos: 7
-    });
+    const loadData = async () => {
+      try {
+        // Carregar estatísticas reais do Supabase
+        const stats = await dataService.getEstatisticas();
+        setEstatisticas(stats);
 
-    const questionarioDemo = {
-      id: '1',
-      titulo: 'Avaliação da Escola Bíblica - Semana 45',
-      descricao: 'Questionário semanal para avaliar o aprendizado e participação na EBD',
-      data_inicio: '2024-11-01',
-      data_fim: '2024-11-07',
-      ativo: true,
-      grupo_target: 'Todos',
-      perguntas: [
-        {
+        // Carregar questionários reais
+        const questData = await dataService.getQuestionarios();
+        setQuestionarios(questData);
+        
+        setEstatisticasQuestionarios({
+          total_questionarios: questData.length,
+          questionarios_ativos: questData.filter(q => q.ativo).length,
+          total_respostas: questData.reduce((total, q) => total + (q.total_respostas || 0), 0),
+          taxa_participacao: questData.length > 0 ? Math.round((questData.filter(q => q.ativo).length / questData.length) * 100) : 0
+        });
+
+      } catch (error) {
+        console.error('Erro carregando dados do Supabase:', error);
+        // Manter dados demo se der erro - agora com Nova Brasília 1
+        setEstatisticas({
+          total_usuarios: 1,
+          total_membros: 3, // Incluir membros de Nova Brasília 1
+          total_igrejas: 6, // Incluir Nova Brasília 1
+          total_grupos: 7
+        });
+
+        // Questionário demo específico da Nova Brasília 1
+        const questionarioDemo = {
           id: '1',
-          texto: 'Como você avalia a lição de hoje?',
-          tipo: 'multipla_escolha',
-          opcoes: ['Excelente', 'Muito boa', 'Boa', 'Regular', 'Precisa melhorar'],
-          obrigatoria: true
-        },
-        {
-          id: '2', 
-          texto: 'Qual foi o principal aprendizado da lição?',
-          tipo: 'texto_longo',
-          opcoes: [],
-          obrigatoria: true
-        }
-      ],
-      criado_por: 'admin@sistema.com',
-      criado_em: '2024-10-28'
+          titulo: 'Avaliação da Escola Bíblica - Nova Brasília 1',
+          descricao: 'Questionário semanal para avaliar o aprendizado e participação na EBD da Nova Brasília 1',
+          data_inicio: '2024-11-01',
+          data_fim: '2024-11-07',
+          ativo: true,
+          grupo_target: 'Todos',
+          igreja: 'Nova Brasília 1',
+          perguntas: [
+            {
+              id: '1',
+              texto: 'Como você avalia a lição de hoje na Nova Brasília 1?',
+              tipo: 'multipla_escolha',
+              opcoes: ['Excelente', 'Muito boa', 'Boa', 'Regular', 'Precisa melhorar'],
+              obrigatoria: true
+            },
+            {
+              id: '2', 
+              texto: 'Qual foi o principal aprendizado da lição na Nova Brasília 1?',
+              tipo: 'texto_longo',
+              opcoes: [],
+              obrigatoria: true
+            }
+          ],
+          criado_por: 'admin@novabrasilia1.com',
+          criado_em: '2024-10-28'
+        };
+
+        setQuestionarios([questionarioDemo]);
+        setEstatisticasQuestionarios({
+          total_questionarios: 1,
+          questionarios_ativos: 1,
+          total_respostas: 2,
+          taxa_participacao: 75
+        });
+      }
     };
 
-    setQuestionarios([questionarioDemo]);
-    setEstatisticasQuestionarios({
-      total_questionarios: 1,
-      questionarios_ativos: 1,
-      total_respostas: 2,
-      taxa_participacao: 75
-    });
-  }, []);
+    if (!configLoading) {
+      loadData();
+    }
+  }, [configLoading]);
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
@@ -140,7 +179,7 @@ function App() {
     const [formData, setFormData] = useState({
       email: 'admin@sistema.com',
       senha: 'admin123',
-      igreja: 'ICM Central',
+      igreja: 'Nova Brasília 1', // PADRÃO PARA NOVA BRASÍLIA 1
       funcao: 'Pastor'
     });
     const [showPassword, setShowPassword] = useState(false);
@@ -151,16 +190,33 @@ function App() {
 
       try {
         if (formData.email === 'admin@sistema.com' && formData.senha === 'admin123') {
-          setCurrentUser({
+          const user = {
             id: '1',
             nome: 'Administrador Sistema',
             email: 'admin@sistema.com',
-            igreja: 'ICM Central',
-            funcao: 'Pastor',
+            igreja: formData.igreja,
+            funcao: formData.funcao,
             perfil: 'admin'
-          });
+          };
+
+          // Tentar criar/atualizar perfil no Supabase
+          try {
+            await dataService.createProfile({
+              id: user.id,
+              nome: user.nome,
+              email: user.email,
+              igreja: user.igreja,
+              funcao: user.funcao,
+              perfil: 'admin'
+            });
+          } catch (error) {
+            // Perfil já existe ou erro de conexão, tudo bem para demo
+            console.log('Perfil já existe ou erro de conexão:', error);
+          }
+
+          setCurrentUser(user);
           setCurrentView('dashboard');
-          showMessage('success', 'Login realizado com sucesso!');
+          showMessage('success', `Login realizado com sucesso! Igreja: ${formData.igreja}`);
         } else {
           showMessage('error', 'Credenciais inválidas');
         }
@@ -269,6 +325,8 @@ function App() {
 
           <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
             <strong>Demo:</strong> admin@sistema.com / admin123
+            <br />
+            <strong>Igreja padrão:</strong> Nova Brasília 1
           </div>
         </div>
       </div>
@@ -301,6 +359,18 @@ function App() {
               {currentUser?.funcao}
             </span>
           </div>
+          {/* DESTAQUE ESPECIAL PARA NOVA BRASÍLIA 1 */}
+          {currentUser?.igreja === 'Nova Brasília 1' && (
+            <div className="mt-3 p-3 bg-white/10 rounded-lg text-sm">
+              🎯 <strong>Nova Brasília 1</strong> - Sistema de automação disponível! 
+              <button 
+                onClick={() => setCurrentView('automacao')}
+                className="ml-2 bg-white/20 px-2 py-1 rounded text-xs hover:bg-white/30"
+              >
+                Acessar Automação →
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -392,8 +462,13 @@ function App() {
                   <p className="text-sm text-gray-600 mb-2">{q.descricao}</p>
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Período: {formatDate(q.data_inicio)} - {formatDate(q.data_fim)}</span>
-                    <span>{q.perguntas.length} perguntas</span>
+                    <span>{q.perguntas?.length || 0} perguntas</span>
                   </div>
+                  {q.igreja && (
+                    <div className="mt-1 text-xs text-blue-600">
+                      🏛️ {q.igreja}
+                    </div>
+                  )}
                 </div>
               ))}
               
@@ -410,20 +485,20 @@ function App() {
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold mb-4 flex items-center">
             <Calendar className="mr-2 h-5 w-5" />
-            PDFs Semanais
+            PDFs Semanais - {currentUser?.igreja}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
               <div>
                 <p className="font-medium">Semana 45 - 2024</p>
-                <p className="text-sm text-gray-600">Validado</p>
+                <p className="text-sm text-gray-600">Validado - {currentUser?.igreja}</p>
               </div>
               <CheckSquare className="h-5 w-5 text-green-500" />
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
               <div>
                 <p className="font-medium">Semana 44 - 2024</p>
-                <p className="text-sm text-gray-600">Pendente validação</p>
+                <p className="text-sm text-gray-600">Pendente validação - {currentUser?.igreja}</p>
               </div>
               <AlertCircle className="h-5 w-5 text-yellow-500" />
             </div>
@@ -438,7 +513,7 @@ function App() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold flex items-center">
           <HelpCircle className="mr-2 h-6 w-6" />
-          Questionários da EBD
+          Questionários da EBD - {currentUser?.igreja}
         </h2>
         <button
           onClick={() => setCurrentView('criar-questionario')}
@@ -480,12 +555,18 @@ function App() {
                     </span>
                     <span className="flex items-center">
                       <HelpCircle className="h-4 w-4 mr-1" />
-                      {questionario.perguntas.length} perguntas
+                      {questionario.perguntas?.length || 0} perguntas
                     </span>
                     <span className="flex items-center">
                       <MessageSquare className="h-4 w-4 mr-1" />
                       2 respostas
                     </span>
+                    {questionario.igreja && (
+                      <span className="flex items-center">
+                        <Church className="h-4 w-4 mr-1" />
+                        {questionario.igreja}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -519,22 +600,53 @@ function App() {
   );
 
   const CriarQuestionario = () => {
-    const salvarQuestionario = () => {
+    const salvarQuestionario = async () => {
       if (!formQuestionario.titulo.trim()) {
         showMessage('error', 'Digite o título do questionário');
         return;
       }
 
-      const novoQuestionario = {
-        id: Date.now().toString(),
-        ...formQuestionario,
-        criado_por: currentUser.email,
-        criado_em: new Date().toISOString().split('T')[0]
-      };
+      try {
+        const novoQuestionario = {
+          ...formQuestionario,
+          igreja: currentUser?.igreja || 'Nova Brasília 1'
+        };
 
-      setQuestionarios(prev => [...prev, novoQuestionario]);
-      showMessage('success', 'Questionário criado com sucesso!');
-      setCurrentView('questionarios');
+        // Tentar salvar no Supabase
+        try {
+          const created = await dataService.createQuestionario(novoQuestionario);
+          setQuestionarios(prev => [...prev, created]);
+          showMessage('success', 'Questionário criado com sucesso no Supabase!');
+        } catch (error) {
+          console.error('Erro salvando no Supabase:', error);
+          // Fallback - salvar localmente
+          const fallbackQuestionario = {
+            id: Date.now().toString(),
+            ...novoQuestionario,
+            criado_por: currentUser.email,
+            criado_em: new Date().toISOString().split('T')[0]
+          };
+          setQuestionarios(prev => [...prev, fallbackQuestionario]);
+          showMessage('success', 'Questionário criado com sucesso (modo offline)!');
+        }
+        
+        setCurrentView('questionarios');
+        
+        // Limpar formulário
+        setFormQuestionario({
+          titulo: '',
+          descricao: '',
+          data_inicio: '',
+          data_fim: '',
+          ativo: true,
+          grupo_target: '',
+          perguntas: []
+        });
+
+      } catch (error) {
+        console.error('Erro criando questionário:', error);
+        showMessage('error', 'Erro ao salvar questionário');
+      }
     };
 
     return (
@@ -542,7 +654,7 @@ function App() {
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold mb-6 flex items-center">
             <Plus className="mr-2 h-6 w-6" />
-            Criar Novo Questionário
+            Criar Novo Questionário - {currentUser?.igreja}
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -555,7 +667,7 @@ function App() {
                 value={formQuestionario.titulo}
                 onChange={(e) => setFormQuestionario(prev => ({...prev, titulo: e.target.value}))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Ex: Avaliação da EBD - Semana 45"
+                placeholder="Ex: Avaliação da EBD - Nova Brasília 1 - Semana 45"
               />
             </div>
 
@@ -585,7 +697,7 @@ function App() {
               onChange={(e) => setFormQuestionario(prev => ({...prev, descricao: e.target.value}))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               rows="3"
-              placeholder="Descreva o objetivo do questionário..."
+              placeholder="Descreva o objetivo do questionário para a Nova Brasília 1..."
             />
           </div>
 
@@ -639,9 +751,12 @@ function App() {
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4 flex items-center">
         <Icon className="mr-2 h-6 w-6" />
-        {title}
+        {title} - {currentUser?.igreja}
       </h2>
-      <p className="text-gray-600">Esta funcionalidade está sendo desenvolvida.</p>
+      <p className="text-gray-600">Esta funcionalidade está sendo desenvolvida especificamente para a {currentUser?.igreja}.</p>
+      <div className="mt-4 p-3 bg-blue-50 rounded text-sm text-blue-600">
+        💡 <strong>Em breve:</strong> Funcionalidades personalizadas para cada igreja
+      </div>
     </div>
   );
 
@@ -650,6 +765,7 @@ function App() {
       { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
       { id: 'membros', label: 'Membros', icon: Users },
       { id: 'questionarios', label: 'Questionários', icon: HelpCircle },
+      { id: 'automacao', label: '🤖 Automação', icon: Bot }, // NOVO ITEM DE MENU
       { id: 'upload', label: 'Importar Dados', icon: Upload },
       { id: 'pdf', label: 'PDF Semanal', icon: FileImage },
       { id: 'perfis', label: 'Perfis', icon: Shield },
@@ -658,12 +774,12 @@ function App() {
 
     const filteredItems = menuItems.filter(item => {
       if (currentUser?.perfil === 'grupo') {
-        return ['dashboard', 'membros', 'questionarios', 'upload'].includes(item.id);
+        return ['dashboard', 'membros', 'questionarios', 'automacao', 'upload'].includes(item.id);
       }
       if (currentUser?.perfil === 'igreja') {
-        return ['dashboard', 'membros', 'questionarios', 'upload', 'pdf'].includes(item.id);
+        return ['dashboard', 'membros', 'questionarios', 'automacao', 'upload', 'pdf'].includes(item.id);
       }
-      return true;
+      return true; // Admin vê tudo
     });
 
     return (
@@ -715,7 +831,7 @@ function App() {
               </div>
               <div className="text-sm">
                 <p className="font-medium">{currentUser?.nome}</p>
-                <p className="text-gray-500">{currentUser?.funcao}</p>
+                <p className="text-gray-500">{currentUser?.funcao} - {currentUser?.igreja}</p>
               </div>
             </div>
             <button
@@ -748,6 +864,8 @@ function App() {
         return <ListaQuestionarios />;
       case 'criar-questionario':
         return <CriarQuestionario />;
+      case 'automacao': // NOVO CASE PARA AUTOMAÇÃO
+        return <AutomationComponent />;
       case 'respostas':
         return <SimpleComponent title="Respostas do Questionário" icon={MessageSquare} />;
       case 'upload':
@@ -786,12 +904,18 @@ function App() {
         <footer className="bg-white border-t mt-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex justify-between items-center text-sm text-gray-600">
-              <p>© 2025 Sistema EBD - Igreja Cristã Maranata</p>
+              <p>© 2025 Sistema EBD - Igreja Cristã Maranata - {currentUser?.igreja}</p>
               <div className="flex items-center space-x-4">
                 <span className="flex items-center">
                   <div className="h-2 w-2 bg-green-400 rounded-full mr-2"></div>
                   Sistema Online
                 </span>
+                {configLoading && (
+                  <span className="flex items-center text-blue-600">
+                    <div className="h-2 w-2 bg-blue-400 rounded-full mr-2 animate-pulse"></div>
+                    Conectando Supabase...
+                  </span>
+                )}
               </div>
             </div>
           </div>
