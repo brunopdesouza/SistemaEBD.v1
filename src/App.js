@@ -41,7 +41,6 @@ const SistemaEBD = () => {
 
   // Estados para questionários (NOVO)
   const [questionarios, setQuestionarios] = useState([]);
-  const [questionarioAtivo, setQuestionarioAtivo] = useState(null);
   const [estatisticasQuestionarios, setEstatisticasQuestionarios] = useState({
     total_questionarios: 0,
     questionarios_ativos: 0,
@@ -518,8 +517,8 @@ const SistemaEBD = () => {
                   </span>
                   <button
                     onClick={() => {
-                      setQuestionarioAtivo(questionario);
-                      setCurrentView('respostas');
+                      // Funcionalidade de ver respostas será implementada
+                      showMessage('info', 'Funcionalidade em desenvolvimento');
                     }}
                     className="p-2 text-blue-600 hover:text-blue-700"
                     title="Ver respostas"
