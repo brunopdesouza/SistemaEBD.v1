@@ -1,5 +1,6 @@
 // src/lib/supabase.js
 import { createClient } from '@supabase/supabase-js'
+import { useState, useEffect } from 'react' // MOVIDO PARA O TOPO
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
@@ -281,8 +282,6 @@ export const dataService = {
 // ============================================================
 // HOOK PERSONALIZADO PARA INTEGRAÇÃO FÁCIL
 // ============================================================
-
-import { useState, useEffect } from 'react'
 
 export const useSupabaseData = () => {
   const [config, setConfig] = useState({
