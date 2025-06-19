@@ -25,13 +25,11 @@ import {
 } from 'lucide-react';
 
 const SistemaEBD = () => {
-  // Estados principais
   const [currentUser, setCurrentUser] = useState(null);
   const [currentView, setCurrentView] = useState('login');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Estados para dados originais
   const [estatisticas, setEstatisticas] = useState({
     total_usuarios: 0,
     total_membros: 0,
@@ -39,7 +37,6 @@ const SistemaEBD = () => {
     total_grupos: 0
   });
 
-  // Estados para questionários (NOVO)
   const [questionarios, setQuestionarios] = useState([]);
   const [estatisticasQuestionarios, setEstatisticasQuestionarios] = useState({
     total_questionarios: 0,
@@ -48,7 +45,6 @@ const SistemaEBD = () => {
     taxa_participacao: 0
   });
 
-  // Estados para formulários de questionários (NOVO)
   const [formQuestionario, setFormQuestionario] = useState({
     titulo: '',
     descricao: '',
@@ -59,7 +55,6 @@ const SistemaEBD = () => {
     perguntas: []
   });
 
-  // Dados mocados originais
   const igrejasList = [
     'ICM Central',
     'ICM Vila Nova',
@@ -90,7 +85,6 @@ const SistemaEBD = () => {
     'Grupo 7 - Solteiros'
   ];
 
-  // Simulação de dados iniciais (mantendo os originais + questionários)
   useEffect(() => {
     setEstatisticas({
       total_usuarios: 1,
@@ -99,7 +93,6 @@ const SistemaEBD = () => {
       total_grupos: 7
     });
 
-    // Dados para questionários (NOVO)
     const questionarioDemo = {
       id: '1',
       titulo: 'Avaliação da Escola Bíblica - Semana 45',
@@ -137,7 +130,6 @@ const SistemaEBD = () => {
     });
   }, []);
 
-  // Funções utilitárias originais
   const showMessage = (type, text) => {
     setMessage({ type, text });
     setTimeout(() => setMessage({ type: '', text: '' }), 5000);
@@ -147,7 +139,6 @@ const SistemaEBD = () => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  // Componente de Login (CORRIGIDO - mais limpo)
   const LoginScreen = () => {
     const [formData, setFormData] = useState({
       email: 'admin@sistema.com',
@@ -287,7 +278,6 @@ const SistemaEBD = () => {
     );
   };
 
-  // Dashboard Original + Questionários
   const Dashboard = () => {
     const getAccessLevel = () => {
       if (currentUser?.perfil === 'admin') return 'Administrador Geral';
@@ -316,7 +306,6 @@ const SistemaEBD = () => {
           </div>
         </div>
 
-        {/* Cards de Estatísticas Originais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
@@ -359,9 +348,7 @@ const SistemaEBD = () => {
           </div>
         </div>
 
-        {/* Seções do Dashboard */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Grupos de Assistência (Original) */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <BarChart3 className="mr-2 h-5 w-5" />
@@ -389,7 +376,6 @@ const SistemaEBD = () => {
             </div>
           </div>
 
-          {/* Questionários Recentes (NOVO) */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <HelpCircle className="mr-2 h-5 w-5" />
@@ -424,7 +410,6 @@ const SistemaEBD = () => {
           </div>
         </div>
 
-        {/* PDFs Semanais (Original) */}
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold mb-4 flex items-center">
             <Calendar className="mr-2 h-5 w-5" />
@@ -451,7 +436,6 @@ const SistemaEBD = () => {
     );
   };
 
-  // Componente Lista de Questionários (NOVO)
   const ListaQuestionarios = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -516,10 +500,7 @@ const SistemaEBD = () => {
                     {questionario.ativo ? 'Ativo' : 'Inativo'}
                   </span>
                   <button
-                    onClick={() => {
-                      // Funcionalidade de ver respostas será implementada
-                      showMessage('info', 'Funcionalidade em desenvolvimento');
-                    }}
+                    onClick={() => showMessage('info', 'Funcionalidade em desenvolvimento')}
                     className="p-2 text-blue-600 hover:text-blue-700"
                     title="Ver respostas"
                   >
@@ -540,7 +521,6 @@ const SistemaEBD = () => {
     </div>
   );
 
-  // Componente Criar Questionário (NOVO - simplificado)
   const CriarQuestionario = () => {
     const salvarQuestionario = () => {
       if (!formQuestionario.titulo.trim()) {
@@ -638,7 +618,6 @@ const SistemaEBD = () => {
             </div>
           </div>
 
-          {/* Botões de Ação */}
           <div className="flex justify-between mt-8">
             <button
               onClick={() => setCurrentView('questionarios')}
@@ -659,7 +638,6 @@ const SistemaEBD = () => {
     );
   };
 
-  // Componente simples para outras telas (ORIGINAL)
   const SimpleComponent = ({ title, icon: Icon }) => (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4 flex items-center">
@@ -670,12 +648,11 @@ const SistemaEBD = () => {
     </div>
   );
 
-  // Navegação Principal (ATUALIZADA com questionários)
   const Navigation = () => {
     const menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
       { id: 'membros', label: 'Membros', icon: Users },
-      { id: 'questionarios', label: 'Questionários', icon: HelpCircle }, // NOVO
+      { id: 'questionarios', label: 'Questionários', icon: HelpCircle },
       { id: 'upload', label: 'Importar Dados', icon: Upload },
       { id: 'pdf', label: 'PDF Semanal', icon: FileImage },
       { id: 'perfis', label: 'Perfis', icon: Shield },
@@ -684,10 +661,10 @@ const SistemaEBD = () => {
 
     const filteredItems = menuItems.filter(item => {
       if (currentUser?.perfil === 'grupo') {
-        return ['dashboard', 'membros', 'questionarios', 'upload'].includes(item.id); // INCLUÍDO questionários
+        return ['dashboard', 'membros', 'questionarios', 'upload'].includes(item.id);
       }
       if (currentUser?.perfil === 'igreja') {
-        return ['dashboard', 'membros', 'questionarios', 'upload', 'pdf'].includes(item.id); // INCLUÍDO questionários
+        return ['dashboard', 'membros', 'questionarios', 'upload', 'pdf'].includes(item.id);
       }
       return true;
     });
@@ -719,7 +696,6 @@ const SistemaEBD = () => {
     );
   };
 
-  // Header do Sistema (ORIGINAL)
   const Header = () => (
     <header className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -761,7 +737,6 @@ const SistemaEBD = () => {
     </header>
   );
 
-  // Renderização Principal (ATUALIZADA)
   const renderCurrentView = () => {
     if (!currentUser) {
       return <LoginScreen />;
@@ -772,11 +747,11 @@ const SistemaEBD = () => {
         return <Dashboard />;
       case 'membros':
         return <SimpleComponent title="Gestão de Membros" icon={Users} />;
-      case 'questionarios': // NOVO
+      case 'questionarios':
         return <ListaQuestionarios />;
-      case 'criar-questionario': // NOVO
+      case 'criar-questionario':
         return <CriarQuestionario />;
-      case 'respostas': // NOVO
+      case 'respostas':
         return <SimpleComponent title="Respostas do Questionário" icon={MessageSquare} />;
       case 'upload':
         return <SimpleComponent title="Importação de Dados" icon={Upload} />;
