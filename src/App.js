@@ -4,19 +4,12 @@ import {
   Settings, 
   BarChart3, 
   Upload, 
-  CheckCircle, 
   AlertCircle,
   User,
   MessageSquare,
   BookOpen,
   Shield,
-  Database,
-  Download,
-  RefreshCw,
-  LogIn,
-  UserPlus,
   Church,
-  FileText,
   Calendar,
   Eye,
   EyeOff,
@@ -25,18 +18,10 @@ import {
   Trash2,
   Search,
   Filter,
-  FileSpreadsheet,
   FileImage,
   CheckSquare,
-  X,
-  Play,
-  PauseCircle,
-  Clock,
-  Award,
-  TrendingUp,
   HelpCircle,
-  Save,
-  Send
+  Save
 } from 'lucide-react';
 
 const SistemaEBD = () => {
@@ -47,9 +32,6 @@ const SistemaEBD = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
 
   // Estados para dados originais
-  const [usuarios, setUsuarios] = useState([]);
-  const [membros, setMembros] = useState([]);
-  const [pdfsSemanais, setPdfsSemanais] = useState([]);
   const [estatisticas, setEstatisticas] = useState({
     total_usuarios: 0,
     total_membros: 0,
@@ -59,7 +41,6 @@ const SistemaEBD = () => {
 
   // Estados para questionários (NOVO)
   const [questionarios, setQuestionarios] = useState([]);
-  const [respostas, setRespostas] = useState([]);
   const [questionarioAtivo, setQuestionarioAtivo] = useState(null);
   const [estatisticasQuestionarios, setEstatisticasQuestionarios] = useState({
     total_questionarios: 0,
@@ -77,13 +58,6 @@ const SistemaEBD = () => {
     ativo: true,
     grupo_target: '',
     perguntas: []
-  });
-
-  const [novaPergunta, setNovaPergunta] = useState({
-    texto: '',
-    tipo: 'multipla_escolha',
-    opcoes: ['', ''],
-    obrigatoria: true
   });
 
   // Dados mocados originais
@@ -117,45 +91,8 @@ const SistemaEBD = () => {
     'Grupo 7 - Solteiros'
   ];
 
-  const tiposPerguntas = [
-    { valor: 'multipla_escolha', label: 'Múltipla Escolha' },
-    { valor: 'texto_curto', label: 'Texto Curto' },
-    { valor: 'texto_longo', label: 'Texto Longo' },
-    { valor: 'numero', label: 'Número' },
-    { valor: 'data', label: 'Data' },
-    { valor: 'escala', label: 'Escala (1-5)' }
-  ];
-
   // Simulação de dados iniciais (mantendo os originais + questionários)
   useEffect(() => {
-    setUsuarios([
-      {
-        id: '1',
-        nome: 'Administrador Sistema',
-        email: 'admin@sistema.com',
-        igreja: 'ICM Central',
-        funcao: 'Pastor',
-        grupo_assistencia: '',
-        perfil: 'admin',
-        telefone: '11999999999',
-        ativo: true
-      }
-    ]);
-
-    setMembros([
-      {
-        id: '1',
-        nome: 'João Silva',
-        sexo: 'M',
-        cpf: '12345678901',
-        classe: 'Adultos',
-        situacao: 'Membro',
-        telefone: '11888888888',
-        igreja: 'ICM Central',
-        grupo_assistencia: 'Grupo 1 - Adultos'
-      }
-    ]);
-
     setEstatisticas({
       total_usuarios: 1,
       total_membros: 1,
@@ -205,16 +142,6 @@ const SistemaEBD = () => {
   const showMessage = (type, text) => {
     setMessage({ type, text });
     setTimeout(() => setMessage({ type: '', text: '' }), 5000);
-  };
-
-  const formatCPF = (cpf) => {
-    if (!cpf) return '';
-    return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-  };
-
-  const formatPhone = (phone) => {
-    if (!phone) return '';
-    return phone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
   };
 
   const formatDate = (dateString) => {
