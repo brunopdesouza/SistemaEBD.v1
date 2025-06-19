@@ -24,19 +24,17 @@ import {
   Save
 } from 'lucide-react';
 
-const SistemaEBD = () => {
+function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentView, setCurrentView] = useState('login');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-
   const [estatisticas, setEstatisticas] = useState({
     total_usuarios: 0,
     total_membros: 0,
     total_igrejas: 0,
     total_grupos: 0
   });
-
   const [questionarios, setQuestionarios] = useState([]);
   const [estatisticasQuestionarios, setEstatisticasQuestionarios] = useState({
     total_questionarios: 0,
@@ -44,7 +42,6 @@ const SistemaEBD = () => {
     total_respostas: 0,
     taxa_participacao: 0
   });
-
   const [formQuestionario, setFormQuestionario] = useState({
     titulo: '',
     descricao: '',
@@ -802,6 +799,6 @@ const SistemaEBD = () => {
       )}
     </div>
   );
-};
+}
 
-export default SistemaEBD;
+export default App;
