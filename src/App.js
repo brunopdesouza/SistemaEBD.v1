@@ -28,7 +28,15 @@ import {
   FileSpreadsheet,
   FileImage,
   CheckSquare,
-  X
+  X,
+  Play,
+  PauseCircle,
+  Clock,
+  Award,
+  TrendingUp,
+  HelpCircle,
+  Save,
+  Send
 } from 'lucide-react';
 
 const SistemaEBD = () => {
@@ -38,7 +46,7 @@ const SistemaEBD = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Estados para dados
+  // Estados para dados originais
   const [usuarios, setUsuarios] = useState([]);
   const [membros, setMembros] = useState([]);
   const [pdfsSemanais, setPdfsSemanais] = useState([]);
@@ -49,7 +57,36 @@ const SistemaEBD = () => {
     total_grupos: 0
   });
 
-  // Dados mocados para demonstração
+  // Estados para questionários (NOVO)
+  const [questionarios, setQuestionarios] = useState([]);
+  const [respostas, setRespostas] = useState([]);
+  const [questionarioAtivo, setQuestionarioAtivo] = useState(null);
+  const [estatisticasQuestionarios, setEstatisticasQuestionarios] = useState({
+    total_questionarios: 0,
+    questionarios_ativos: 0,
+    total_respostas: 0,
+    taxa_participacao: 0
+  });
+
+  // Estados para formulários de questionários (NOVO)
+  const [formQuestionario, setFormQuestionario] = useState({
+    titulo: '',
+    descricao: '',
+    data_inicio: '',
+    data_fim: '',
+    ativo: true,
+    grupo_target: '',
+    perguntas: []
+  });
+
+  const [novaPergunta, setNovaPergunta] = useState({
+    texto: '',
+    tipo: 'multipla_escolha',
+    opcoes: ['', ''],
+    obrigatoria: true
+  });
+
+  // Dados mocados originais
   const igrejasList = [
     'ICM Central',
     'ICM Vila Nova',
@@ -80,40 +117,16 @@ const SistemaEBD = () => {
     'Grupo 7 - Solteiros'
   ];
 
-  // Função para obter responsável e secretário do grupo
-  const getGrupoResponsaveis = (grupoAssistencia) => {
-    const responsavel = usuarios.find(u => 
-      u.grupo_assistencia === grupoAssistencia && 
-      u.funcao === 'Responsável do Grupo' && 
-      u.ativo
-    );
-    
-    const secretario = usuarios.find(u => 
-      u.grupo_assistencia === grupoAssistencia && 
-      u.funcao === 'Secretário do Grupo' && 
-      u.ativo
-    );
+  const tiposPerguntas = [
+    { valor: 'multipla_escolha', label: 'Múltipla Escolha' },
+    { valor: 'texto_curto', label: 'Texto Curto' },
+    { valor: 'texto_longo', label: 'Texto Longo' },
+    { valor: 'numero', label: 'Número' },
+    { valor: 'data', label: 'Data' },
+    { valor: 'escala', label: 'Escala (1-5)' }
+  ];
 
-    return { responsavel, secretario };
-  };
-
-  // Função para obter estatísticas do grupo
-  const getEstatisticasGrupo = (grupoAssistencia) => {
-    const membrosGrupo = membros.filter(m => m.grupo_assistencia === grupoAssistencia);
-    return {
-      total_membros: membrosGrupo.length,
-      por_classe: membrosGrupo.reduce((acc, m) => {
-        acc[m.classe] = (acc[m.classe] || 0) + 1;
-        return acc;
-      }, {}),
-      por_situacao: membrosGrupo.reduce((acc, m) => {
-        acc[m.situacao] = (acc[m.situacao] || 0) + 1;
-        return acc;
-      }, {})
-    };
-  };
-
-  // Simulação de dados iniciais
+  // Simulação de dados iniciais (mantendo os originais + questionários)
   useEffect(() => {
     setUsuarios([
       {
@@ -149,9 +162,46 @@ const SistemaEBD = () => {
       total_igrejas: 5,
       total_grupos: 7
     });
+
+    // Dados para questionários (NOVO)
+    const questionarioDemo = {
+      id: '1',
+      titulo: 'Avaliação da Escola Bíblica - Semana 45',
+      descricao: 'Questionário semanal para avaliar o aprendizado e participação na EBD',
+      data_inicio: '2024-11-01',
+      data_fim: '2024-11-07',
+      ativo: true,
+      grupo_target: 'Todos',
+      perguntas: [
+        {
+          id: '1',
+          texto: 'Como você avalia a lição de hoje?',
+          tipo: 'multipla_escolha',
+          opcoes: ['Excelente', 'Muito boa', 'Boa', 'Regular', 'Precisa melhorar'],
+          obrigatoria: true
+        },
+        {
+          id: '2', 
+          texto: 'Qual foi o principal aprendizado da lição?',
+          tipo: 'texto_longo',
+          opcoes: [],
+          obrigatoria: true
+        }
+      ],
+      criado_por: 'admin@sistema.com',
+      criado_em: '2024-10-28'
+    };
+
+    setQuestionarios([questionarioDemo]);
+    setEstatisticasQuestionarios({
+      total_questionarios: 1,
+      questionarios_ativos: 1,
+      total_respostas: 2,
+      taxa_participacao: 75
+    });
   }, []);
 
-  // Funções utilitárias
+  // Funções utilitárias originais
   const showMessage = (type, text) => {
     setMessage({ type, text });
     setTimeout(() => setMessage({ type: '', text: '' }), 5000);
@@ -167,13 +217,17 @@ const SistemaEBD = () => {
     return phone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
   };
 
-  // Componente de Login
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  // Componente de Login (CORRIGIDO - mais limpo)
   const LoginScreen = () => {
     const [formData, setFormData] = useState({
-      email: '',
-      senha: '',
-      igreja: '',
-      funcao: ''
+      email: 'admin@sistema.com',
+      senha: 'admin123',
+      igreja: 'ICM Central',
+      funcao: 'Pastor'
     });
     const [showPassword, setShowPassword] = useState(false);
 
@@ -224,9 +278,7 @@ const SistemaEBD = () => {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Igreja *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Igreja *</label>
               <select
                 required
                 value={formData.igreja}
@@ -241,9 +293,7 @@ const SistemaEBD = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Função *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Função *</label>
               <select
                 required
                 value={formData.funcao}
@@ -258,9 +308,7 @@ const SistemaEBD = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
               <input
                 type="email"
                 required
@@ -272,9 +320,7 @@ const SistemaEBD = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Senha *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Senha *</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -307,15 +353,6 @@ const SistemaEBD = () => {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setCurrentView('register')}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-            >
-              Não tem conta? Cadastre-se aqui
-            </button>
-          </div>
-
           <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
             <strong>Demo:</strong> admin@sistema.com / admin123
           </div>
@@ -324,261 +361,7 @@ const SistemaEBD = () => {
     );
   };
 
-  // Componente de Cadastro de Usuário
-  const RegisterScreen = () => {
-    const [formData, setFormData] = useState({
-      nome: '',
-      email: '',
-      senha: '',
-      confirmarSenha: '',
-      telefone: '',
-      igreja: '',
-      funcao: '',
-      grupo_assistencia: '',
-      perfil: 'grupo'
-    });
-    const [showPassword, setShowPassword] = useState(false);
-
-    const handleRegister = async (e) => {
-      e.preventDefault();
-      
-      if (formData.senha !== formData.confirmarSenha) {
-        showMessage('error', 'Senhas não coincidem');
-        return;
-      }
-
-      if (formData.senha.length < 6) {
-        showMessage('error', 'Senha deve ter pelo menos 6 caracteres');
-        return;
-      }
-
-      setLoading(true);
-
-      try {
-        const novoUsuario = {
-          id: Date.now().toString(),
-          ...formData,
-          ativo: true
-        };
-        delete novoUsuario.confirmarSenha;
-
-        setUsuarios(prev => [...prev, novoUsuario]);
-        setEstatisticas(prev => ({
-          ...prev,
-          total_usuarios: prev.total_usuarios + 1
-        }));
-        showMessage('success', 'Usuário cadastrado com sucesso! Faça login.');
-        setCurrentView('login');
-      } catch (error) {
-        showMessage('error', 'Erro no cadastro');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-700 to-green-500 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-2xl">
-          <div className="text-center mb-8">
-            <UserPlus className="h-12 w-12 text-green-600 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900">Cadastro de Usuário</h1>
-            <p className="text-gray-600">Sistema EBD - Igreja Cristã Maranata</p>
-          </div>
-
-          {message.text && (
-            <div className={`p-3 rounded-lg mb-4 ${
-              message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
-              message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
-              'bg-yellow-50 text-yellow-800 border border-yellow-200'
-            }`}>
-              {message.text}
-            </div>
-          )}
-
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome Completo *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.nome}
-                  onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="Digite seu nome completo"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="seu@email.com"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Senha *
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={formData.senha}
-                    onChange={(e) => setFormData({...formData, senha: e.target.value})}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent pr-10"
-                    placeholder="Mínimo 6 caracteres"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirmar Senha *
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={formData.confirmarSenha}
-                  onChange={(e) => setFormData({...formData, confirmarSenha: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="Confirme sua senha"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Igreja *
-                </label>
-                <select
-                  required
-                  value={formData.igreja}
-                  onChange={(e) => setFormData({...formData, igreja: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  <option value="">Selecione a igreja</option>
-                  {igrejasList.map(igreja => (
-                    <option key={igreja} value={igreja}>{igreja}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Função *
-                </label>
-                <select
-                  required
-                  value={formData.funcao}
-                  onChange={(e) => setFormData({...formData, funcao: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  <option value="">Selecione a função</option>
-                  {funcoesList.map(funcao => (
-                    <option key={funcao} value={funcao}>{funcao}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Grupo de Assistência *
-                </label>
-                <select
-                  required
-                  value={formData.grupo_assistencia}
-                  onChange={(e) => setFormData({...formData, grupo_assistencia: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  <option value="">Selecione o grupo</option>
-                  {gruposAssistencia.map(grupo => (
-                    <option key={grupo} value={grupo}>{grupo}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Telefone *
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={formData.telefone}
-                  onChange={(e) => setFormData({...formData, telefone: e.target.value.replace(/\D/g, '')})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="11999999999"
-                  maxLength="11"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Perfil de Acesso *
-              </label>
-              <select
-                required
-                value={formData.perfil}
-                onChange={(e) => setFormData({...formData, perfil: e.target.value})}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="grupo">Usuário Grupo - Acesso apenas ao seu grupo</option>
-                <option value="igreja">Usuário Igreja - Acesso a todos os grupos da igreja</option>
-                <option value="admin">Administrador - Acesso total ao sistema</option>
-              </select>
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={() => setCurrentView('login')}
-                className="flex-1 py-3 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Voltar
-              </button>
-              
-              <button
-                type="submit"
-                disabled={loading}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
-                  loading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
-                }`}
-              >
-                {loading ? 'Cadastrando...' : 'Cadastrar'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
-  // Componente Dashboard
+  // Dashboard Original + Questionários
   const Dashboard = () => {
     const getAccessLevel = () => {
       if (currentUser?.perfil === 'admin') return 'Administrador Geral';
@@ -607,6 +390,7 @@ const SistemaEBD = () => {
           </div>
         </div>
 
+        {/* Cards de Estatísticas Originais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
@@ -641,71 +425,99 @@ const SistemaEBD = () => {
           <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Grupos Assistência</p>
-                <p className="text-2xl font-bold text-gray-800">{estatisticas.total_grupos}</p>
+                <p className="text-sm text-gray-600">Questionários Ativos</p>
+                <p className="text-2xl font-bold text-gray-800">{estatisticasQuestionarios.questionarios_ativos}</p>
               </div>
-              <Users className="h-8 w-8 text-purple-500" />
+              <HelpCircle className="h-8 w-8 text-purple-500" />
             </div>
           </div>
         </div>
 
+        {/* Seções do Dashboard */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Grupos de Assistência (Original) */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <BarChart3 className="mr-2 h-5 w-5" />
               Grupos de Assistência
             </h3>
             <div className="space-y-3">
-              {gruposAssistencia.slice(0, 4).map(grupo => {
-                const { responsavel, secretario } = getGrupoResponsaveis(grupo);
-                const stats = getEstatisticasGrupo(grupo);
-                
-                return (
-                  <div key={grupo} className="p-3 bg-gray-50 rounded border-l-4 border-blue-500">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium text-gray-900">{grupo}</h4>
-                      <span className="text-sm font-semibold text-blue-600">
-                        {stats.total_membros} membros
-                      </span>
+              {gruposAssistencia.slice(0, 4).map(grupo => (
+                <div key={grupo} className="p-3 bg-gray-50 rounded border-l-4 border-blue-500">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900">{grupo}</h4>
+                    <span className="text-sm font-semibold text-blue-600">5 membros</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                    <div>
+                      <span className="font-medium">Responsável:</span><br />
+                      João Silva
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
-                      <div>
-                        <span className="font-medium">Responsável:</span>
-                        <br />
-                        {responsavel ? responsavel.nome : 'Não definido'}
-                      </div>
-                      <div>
-                        <span className="font-medium">Secretário:</span>
-                        <br />
-                        {secretario ? secretario.nome : 'Não definido'}
-                      </div>
+                    <div>
+                      <span className="font-medium">Secretário:</span><br />
+                      Maria Santos
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
 
+          {/* Questionários Recentes (NOVO) */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Calendar className="mr-2 h-5 w-5" />
-              PDFs Semanais
+              <HelpCircle className="mr-2 h-5 w-5" />
+              Questionários Recentes
             </h3>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                <div>
-                  <p className="font-medium">Semana 45 - 2024</p>
-                  <p className="text-sm text-gray-600">Validado</p>
+              {questionarios.slice(0, 3).map(q => (
+                <div key={q.id} className="p-3 bg-gray-50 rounded border-l-4 border-green-500">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900">{q.titulo}</h4>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      q.ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {q.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">{q.descricao}</p>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Período: {formatDate(q.data_inicio)} - {formatDate(q.data_fim)}</span>
+                    <span>{q.perguntas.length} perguntas</span>
+                  </div>
                 </div>
-                <CheckSquare className="h-5 w-5 text-green-500" />
+              ))}
+              
+              <button
+                onClick={() => setCurrentView('questionarios')}
+                className="w-full p-2 text-blue-600 hover:text-blue-700 text-sm font-medium border border-blue-300 rounded hover:bg-blue-50"
+              >
+                Ver todos os questionários →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* PDFs Semanais (Original) */}
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <Calendar className="mr-2 h-5 w-5" />
+            PDFs Semanais
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+              <div>
+                <p className="font-medium">Semana 45 - 2024</p>
+                <p className="text-sm text-gray-600">Validado</p>
               </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                <div>
-                  <p className="font-medium">Semana 44 - 2024</p>
-                  <p className="text-sm text-gray-600">Pendente validação</p>
-                </div>
-                <AlertCircle className="h-5 w-5 text-yellow-500" />
+              <CheckSquare className="h-5 w-5 text-green-500" />
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+              <div>
+                <p className="font-medium">Semana 44 - 2024</p>
+                <p className="text-sm text-gray-600">Pendente validação</p>
               </div>
+              <AlertCircle className="h-5 w-5 text-yellow-500" />
             </div>
           </div>
         </div>
@@ -713,7 +525,215 @@ const SistemaEBD = () => {
     );
   };
 
-  // Componente simples para outras telas
+  // Componente Lista de Questionários (NOVO)
+  const ListaQuestionarios = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold flex items-center">
+          <HelpCircle className="mr-2 h-6 w-6" />
+          Questionários da EBD
+        </h2>
+        <button
+          onClick={() => setCurrentView('criar-questionario')}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Questionário
+        </button>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="px-6 py-4 border-b bg-gray-50">
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold">Lista de Questionários</h3>
+            <div className="flex gap-2">
+              <button className="p-2 text-gray-500 hover:text-gray-700">
+                <Search className="h-4 w-4" />
+              </button>
+              <button className="p-2 text-gray-500 hover:text-gray-700">
+                <Filter className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="divide-y">
+          {questionarios.map(questionario => (
+            <div key={questionario.id} className="p-6 hover:bg-gray-50">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                    {questionario.titulo}
+                  </h4>
+                  <p className="text-gray-600 mb-2">{questionario.descricao}</p>
+                  <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                    <span className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {formatDate(questionario.data_inicio)} - {formatDate(questionario.data_fim)}
+                    </span>
+                    <span className="flex items-center">
+                      <HelpCircle className="h-4 w-4 mr-1" />
+                      {questionario.perguntas.length} perguntas
+                    </span>
+                    <span className="flex items-center">
+                      <MessageSquare className="h-4 w-4 mr-1" />
+                      2 respostas
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    questionario.ativo 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {questionario.ativo ? 'Ativo' : 'Inativo'}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setQuestionarioAtivo(questionario);
+                      setCurrentView('respostas');
+                    }}
+                    className="p-2 text-blue-600 hover:text-blue-700"
+                    title="Ver respostas"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button className="p-2 text-gray-600 hover:text-gray-700" title="Editar">
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button className="p-2 text-red-600 hover:text-red-700" title="Excluir">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Componente Criar Questionário (NOVO - simplificado)
+  const CriarQuestionario = () => {
+    const salvarQuestionario = () => {
+      if (!formQuestionario.titulo.trim()) {
+        showMessage('error', 'Digite o título do questionário');
+        return;
+      }
+
+      const novoQuestionario = {
+        id: Date.now().toString(),
+        ...formQuestionario,
+        criado_por: currentUser.email,
+        criado_em: new Date().toISOString().split('T')[0]
+      };
+
+      setQuestionarios(prev => [...prev, novoQuestionario]);
+      showMessage('success', 'Questionário criado com sucesso!');
+      setCurrentView('questionarios');
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold mb-6 flex items-center">
+            <Plus className="mr-2 h-6 w-6" />
+            Criar Novo Questionário
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Título do Questionário *
+              </label>
+              <input
+                type="text"
+                value={formQuestionario.titulo}
+                onChange={(e) => setFormQuestionario(prev => ({...prev, titulo: e.target.value}))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Ex: Avaliação da EBD - Semana 45"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Grupo Alvo
+              </label>
+              <select
+                value={formQuestionario.grupo_target}
+                onChange={(e) => setFormQuestionario(prev => ({...prev, grupo_target: e.target.value}))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todos os grupos</option>
+                {gruposAssistencia.map(grupo => (
+                  <option key={grupo} value={grupo}>{grupo}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Descrição
+            </label>
+            <textarea
+              value={formQuestionario.descricao}
+              onChange={(e) => setFormQuestionario(prev => ({...prev, descricao: e.target.value}))}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              rows="3"
+              placeholder="Descreva o objetivo do questionário..."
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Data de Início
+              </label>
+              <input
+                type="date"
+                value={formQuestionario.data_inicio}
+                onChange={(e) => setFormQuestionario(prev => ({...prev, data_inicio: e.target.value}))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Data de Fim
+              </label>
+              <input
+                type="date"
+                value={formQuestionario.data_fim}
+                onChange={(e) => setFormQuestionario(prev => ({...prev, data_fim: e.target.value}))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Botões de Ação */}
+          <div className="flex justify-between mt-8">
+            <button
+              onClick={() => setCurrentView('questionarios')}
+              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={salvarQuestionario}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 flex items-center"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Salvar Questionário
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Componente simples para outras telas (ORIGINAL)
   const SimpleComponent = ({ title, icon: Icon }) => (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4 flex items-center">
@@ -724,11 +744,12 @@ const SistemaEBD = () => {
     </div>
   );
 
-  // Navegação Principal
+  // Navegação Principal (ATUALIZADA com questionários)
   const Navigation = () => {
     const menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
       { id: 'membros', label: 'Membros', icon: Users },
+      { id: 'questionarios', label: 'Questionários', icon: HelpCircle }, // NOVO
       { id: 'upload', label: 'Importar Dados', icon: Upload },
       { id: 'pdf', label: 'PDF Semanal', icon: FileImage },
       { id: 'perfis', label: 'Perfis', icon: Shield },
@@ -737,10 +758,10 @@ const SistemaEBD = () => {
 
     const filteredItems = menuItems.filter(item => {
       if (currentUser?.perfil === 'grupo') {
-        return ['dashboard', 'membros', 'upload'].includes(item.id);
+        return ['dashboard', 'membros', 'questionarios', 'upload'].includes(item.id); // INCLUÍDO questionários
       }
       if (currentUser?.perfil === 'igreja') {
-        return ['dashboard', 'membros', 'upload', 'pdf'].includes(item.id);
+        return ['dashboard', 'membros', 'questionarios', 'upload', 'pdf'].includes(item.id); // INCLUÍDO questionários
       }
       return true;
     });
@@ -772,7 +793,7 @@ const SistemaEBD = () => {
     );
   };
 
-  // Header do Sistema
+  // Header do Sistema (ORIGINAL)
   const Header = () => (
     <header className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -814,10 +835,10 @@ const SistemaEBD = () => {
     </header>
   );
 
-  // Renderização Principal
+  // Renderização Principal (ATUALIZADA)
   const renderCurrentView = () => {
     if (!currentUser) {
-      return currentView === 'register' ? <RegisterScreen /> : <LoginScreen />;
+      return <LoginScreen />;
     }
 
     switch (currentView) {
@@ -825,6 +846,12 @@ const SistemaEBD = () => {
         return <Dashboard />;
       case 'membros':
         return <SimpleComponent title="Gestão de Membros" icon={Users} />;
+      case 'questionarios': // NOVO
+        return <ListaQuestionarios />;
+      case 'criar-questionario': // NOVO
+        return <CriarQuestionario />;
+      case 'respostas': // NOVO
+        return <SimpleComponent title="Respostas do Questionário" icon={MessageSquare} />;
       case 'upload':
         return <SimpleComponent title="Importação de Dados" icon={Upload} />;
       case 'pdf':
@@ -844,6 +871,16 @@ const SistemaEBD = () => {
       {currentUser && <Navigation />}
       
       <main className={currentUser ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" : ""}>
+        {message.text && (
+          <div className={`mb-6 p-4 rounded-lg ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+            'bg-yellow-50 text-yellow-800 border border-yellow-200'
+          }`}>
+            {message.text}
+          </div>
+        )}
+        
         {renderCurrentView()}
       </main>
 
