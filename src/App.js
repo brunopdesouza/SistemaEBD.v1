@@ -25,6 +25,67 @@ import {
   Bot // NOVA IMPORTAÇÃO
 } from 'lucide-react';
 
+// No topo, junto com as outras importações:
+import ImportMembersComponent from './components/ImportMembersComponent';
+
+// No Navigation, modifique o menuItems para incluir importação:
+const menuItems = [
+  { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+  { id: 'membros', label: 'Membros', icon: Users },
+  { id: 'import-membros', label: '📥 Importar Membros', icon: Upload }, // NOVA LINHA
+  { id: 'questionarios', label: 'Questionários', icon: HelpCircle },
+  { id: 'automacao', label: '🤖 Automação', icon: Bot },
+  { id: 'upload', label: 'Importar Dados', icon: Upload },
+  { id: 'pdf', label: 'PDF Semanal', icon: FileImage },
+  { id: 'perfis', label: 'Perfis', icon: Shield },
+  { id: 'configuracoes', label: 'Configurações', icon: Settings }
+];
+
+// No filteredItems, adicione 'import-membros':
+const filteredItems = menuItems.filter(item => {
+  if (currentUser?.perfil === 'grupo') {
+    return ['dashboard', 'membros', 'import-membros', 'questionarios', 'automacao', 'upload'].includes(item.id);
+  }
+  if (currentUser?.perfil === 'igreja') {
+    return ['dashboard', 'membros', 'import-membros', 'questionarios', 'automacao', 'upload', 'pdf'].includes(item.id);
+  }
+  return true; // Admin vê tudo
+});
+
+// No renderCurrentView, adicione o case:
+const renderCurrentView = () => {
+  if (!currentUser) {
+    return <LoginScreen />;
+  }
+
+  switch (currentView) {
+    case 'dashboard':
+      return <Dashboard />;
+    case 'membros':
+      return <SimpleComponent title="Gestão de Membros" icon={Users} />;
+    case 'import-membros': // NOVO CASE
+      return <ImportMembersComponent />;
+    case 'questionarios':
+      return <ListaQuestionarios />;
+    case 'criar-questionario':
+      return <CriarQuestionario />;
+    case 'automacao':
+      return <AutomationComponent />;
+    case 'respostas':
+      return <SimpleComponent title="Respostas do Questionário" icon={MessageSquare} />;
+    case 'upload':
+      return <SimpleComponent title="Importação de Dados" icon={Upload} />;
+    case 'pdf':
+      return <SimpleComponent title="Upload PDF Semanal" icon={FileImage} />;
+    case 'perfis':
+      return <SimpleComponent title="Gestão de Perfis" icon={Shield} />;
+    case 'configuracoes':
+      return <SimpleComponent title="Configurações" icon={Settings} />;
+    default:
+      return <Dashboard />;
+  }
+};
+
 // NOVAS IMPORTAÇÕES PARA SUPABASE
 import { dataService, useSupabaseData } from './lib/supabase';
 import AutomationComponent from './components/AutomationComponent';
