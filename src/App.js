@@ -1,3 +1,4 @@
+// src/App.js
 import React, { useState, useEffect } from 'react';
 import { 
   Users, 
@@ -22,73 +23,15 @@ import {
   CheckSquare,
   HelpCircle,
   Save,
-  Bot // NOVA IMPORTAÇÃO
+  Bot
 } from 'lucide-react';
 
-// No topo, junto com as outras importações:
+// Imports dos componentes
 import ImportMembersComponent from './components/ImportMembersComponent';
-
-// No Navigation, modifique o menuItems para incluir importação:
-const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-  { id: 'membros', label: 'Membros', icon: Users },
-  { id: 'import-membros', label: '📥 Importar Membros', icon: Upload }, // NOVA LINHA
-  { id: 'questionarios', label: 'Questionários', icon: HelpCircle },
-  { id: 'automacao', label: '🤖 Automação', icon: Bot },
-  { id: 'upload', label: 'Importar Dados', icon: Upload },
-  { id: 'pdf', label: 'PDF Semanal', icon: FileImage },
-  { id: 'perfis', label: 'Perfis', icon: Shield },
-  { id: 'configuracoes', label: 'Configurações', icon: Settings }
-];
-
-// No filteredItems, adicione 'import-membros':
-const filteredItems = menuItems.filter(item => {
-  if (currentUser?.perfil === 'grupo') {
-    return ['dashboard', 'membros', 'import-membros', 'questionarios', 'automacao', 'upload'].includes(item.id);
-  }
-  if (currentUser?.perfil === 'igreja') {
-    return ['dashboard', 'membros', 'import-membros', 'questionarios', 'automacao', 'upload', 'pdf'].includes(item.id);
-  }
-  return true; // Admin vê tudo
-});
-
-// No renderCurrentView, adicione o case:
-const renderCurrentView = () => {
-  if (!currentUser) {
-    return <LoginScreen />;
-  }
-
-  switch (currentView) {
-    case 'dashboard':
-      return <Dashboard />;
-    case 'membros':
-      return <SimpleComponent title="Gestão de Membros" icon={Users} />;
-    case 'import-membros': // NOVO CASE
-      return <ImportMembersComponent />;
-    case 'questionarios':
-      return <ListaQuestionarios />;
-    case 'criar-questionario':
-      return <CriarQuestionario />;
-    case 'automacao':
-      return <AutomationComponent />;
-    case 'respostas':
-      return <SimpleComponent title="Respostas do Questionário" icon={MessageSquare} />;
-    case 'upload':
-      return <SimpleComponent title="Importação de Dados" icon={Upload} />;
-    case 'pdf':
-      return <SimpleComponent title="Upload PDF Semanal" icon={FileImage} />;
-    case 'perfis':
-      return <SimpleComponent title="Gestão de Perfis" icon={Shield} />;
-    case 'configuracoes':
-      return <SimpleComponent title="Configurações" icon={Settings} />;
-    default:
-      return <Dashboard />;
-  }
-};
-
-// NOVAS IMPORTAÇÕES PARA SUPABASE
-import { dataService, useSupabaseData } from './lib/supabase';
 import AutomationComponent from './components/AutomationComponent';
+
+// Imports do Supabase
+import { dataService, useSupabaseData } from './lib/supabase';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -122,16 +65,16 @@ function App() {
   const { config, loading: configLoading } = useSupabaseData();
 
   // LISTAS DINÂMICAS DO SUPABASE COM FALLBACK
-  const igrejasList = config.igrejas || [
+  const igrejasList = config?.igrejas || [
     'ICM Central',
     'ICM Vila Nova',
     'ICM Jardim das Flores',
     'ICM Centro',
     'ICM Bairro Alto',
-    'Nova Brasília 1' // GARANTIR QUE NOVA BRASÍLIA 1 ESTÁ INCLUÍDA
+    'Nova Brasília 1'
   ];
 
-  const funcoesList = config.funcoes || [
+  const funcoesList = config?.funcoes || [
     'Pastor',
     'Evangelista', 
     'Diácono',
@@ -143,7 +86,7 @@ function App() {
     'Membro'
   ];
 
-  const gruposAssistencia = config.grupos_assistencia || [
+  const gruposAssistencia = config?.grupos_assistencia || [
     'Grupo 1 - Adultos',
     'Grupo 2 - Jovens',
     'Grupo 3 - Adolescentes',
@@ -177,8 +120,8 @@ function App() {
         // Manter dados demo se der erro - agora com Nova Brasília 1
         setEstatisticas({
           total_usuarios: 1,
-          total_membros: 3, // Incluir membros de Nova Brasília 1
-          total_igrejas: 6, // Incluir Nova Brasília 1
+          total_membros: 3,
+          total_igrejas: 6,
           total_grupos: 7
         });
 
@@ -240,7 +183,7 @@ function App() {
     const [formData, setFormData] = useState({
       email: 'admin@sistema.com',
       senha: 'admin123',
-      igreja: 'Nova Brasília 1', // PADRÃO PARA NOVA BRASÍLIA 1
+      igreja: 'Nova Brasília 1',
       funcao: 'Pastor'
     });
     const [showPassword, setShowPassword] = useState(false);
@@ -271,7 +214,6 @@ function App() {
               perfil: 'admin'
             });
           } catch (error) {
-            // Perfil já existe ou erro de conexão, tudo bem para demo
             console.log('Perfil já existe ou erro de conexão:', error);
           }
 
@@ -420,7 +362,6 @@ function App() {
               {currentUser?.funcao}
             </span>
           </div>
-          {/* DESTAQUE ESPECIAL PARA NOVA BRASÍLIA 1 */}
           {currentUser?.igreja === 'Nova Brasília 1' && (
             <div className="mt-3 p-3 bg-white/10 rounded-lg text-sm">
               🎯 <strong>Nova Brasília 1</strong> - Sistema de automação disponível! 
@@ -825,8 +766,9 @@ function App() {
     const menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
       { id: 'membros', label: 'Membros', icon: Users },
+      { id: 'import-membros', label: '📥 Importar Membros', icon: Upload },
       { id: 'questionarios', label: 'Questionários', icon: HelpCircle },
-      { id: 'automacao', label: '🤖 Automação', icon: Bot }, // NOVO ITEM DE MENU
+      { id: 'automacao', label: '🤖 Automação', icon: Bot },
       { id: 'upload', label: 'Importar Dados', icon: Upload },
       { id: 'pdf', label: 'PDF Semanal', icon: FileImage },
       { id: 'perfis', label: 'Perfis', icon: Shield },
@@ -835,10 +777,10 @@ function App() {
 
     const filteredItems = menuItems.filter(item => {
       if (currentUser?.perfil === 'grupo') {
-        return ['dashboard', 'membros', 'questionarios', 'automacao', 'upload'].includes(item.id);
+        return ['dashboard', 'membros', 'import-membros', 'questionarios', 'automacao', 'upload'].includes(item.id);
       }
       if (currentUser?.perfil === 'igreja') {
-        return ['dashboard', 'membros', 'questionarios', 'automacao', 'upload', 'pdf'].includes(item.id);
+        return ['dashboard', 'membros', 'import-membros', 'questionarios', 'automacao', 'upload', 'pdf'].includes(item.id);
       }
       return true; // Admin vê tudo
     });
@@ -921,11 +863,13 @@ function App() {
         return <Dashboard />;
       case 'membros':
         return <SimpleComponent title="Gestão de Membros" icon={Users} />;
+      case 'import-membros':
+        return <ImportMembersComponent />;
       case 'questionarios':
         return <ListaQuestionarios />;
       case 'criar-questionario':
         return <CriarQuestionario />;
-      case 'automacao': // NOVO CASE PARA AUTOMAÇÃO
+      case 'automacao':
         return <AutomationComponent />;
       case 'respostas':
         return <SimpleComponent title="Respostas do Questionário" icon={MessageSquare} />;
