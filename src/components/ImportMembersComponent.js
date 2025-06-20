@@ -11,7 +11,6 @@ import {
   Info, 
   RefreshCw, 
   Zap,
-  Download,
   FileText,
   Check
 } from 'lucide-react';
