@@ -1,0 +1,40 @@
+# Sistema EBD - Dependências Python
+# Instalar com: pip install -r requirements.txt
+
+# Processamento PDF
+PyMuPDF==1.23.8
+pypdf2==3.0.1
+pdfplumber==0.10.3
+
+# Manipulação de dados
+pandas==2.1.4
+openpyxl==3.1.2
+numpy==1.24.3
+
+# Integração Supabase
+supabase==2.3.0
+postgrest==0.13.2
+
+# Utilitários
+requests==2.31.0
+python-dotenv==1.0.0
+pathlib2==2.3.7
+
+# OCR (opcional - para PDFs escaneados)
+pytesseract==0.3.10
+Pillow==10.1.0
+
+# Automação Web (opcional)
+selenium==4.15.2
+webdriver-manager==4.0.1
+
+# Processamento de texto
+regex==2023.10.3
+
+# Logging e debugging
+colorama==0.4.6
+tqdm==4.66.1
+
+# Validação de dados
+pydantic==2.5.0
+jsonschema==4.20.0
