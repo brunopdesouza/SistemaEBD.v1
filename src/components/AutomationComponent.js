@@ -12,12 +12,9 @@ import {
   RefreshCw,
   CheckCircle,
   AlertCircle,
-  Clock,
-  Download,
   Upload,
   Eye,
-  Edit,
-  Trash2
+  Edit
 } from 'lucide-react';
 
 const AutomationComponent = () => {
@@ -55,7 +52,7 @@ const AutomationComponent = () => {
     }
   ]);
 
-  const [pdfContent, setPdfContent] = useState({
+  const [pdfContent] = useState({
     title: 'Lição 45 - O Amor de Deus',
     extractedText: `
     ESCOLA BÍBLICA DOMINICAL - NOVA BRASÍLIA I
@@ -115,7 +112,8 @@ const AutomationComponent = () => {
     generatedAt: '2024-11-15 09:30:00'
   });
 
-  const [selectedMembers, setSelectedMembers] = useState([]);
+  // Remover variáveis não utilizadas
+  // const [selectedMembers, setSelectedMembers] = useState([]);
   const [message, setMessage] = useState({ type: '', text: '' });
 
   const showMessage = (type, text) => {
