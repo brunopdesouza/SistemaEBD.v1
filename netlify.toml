@@ -6,6 +6,9 @@
 [build.environment]
   NODE_VERSION = "18"
   NPM_VERSION = "9"
+  REACT_APP_SUPABASE_URL = ""
+  REACT_APP_SUPABASE_ANON_KEY = ""
+  REACT_APP_ENV = "production"
 
 # Configurações para SPA React
 [[redirects]]
@@ -76,9 +79,3 @@
 [[edge_functions]]
   function = "pdf-upload"
   path = "/api/upload/*"
-
-# Variáveis de ambiente para build
-[build.environment]
-  REACT_APP_SUPABASE_URL = ""
-  REACT_APP_SUPABASE_ANON_KEY = ""
-  REACT_APP_ENV = "production"
