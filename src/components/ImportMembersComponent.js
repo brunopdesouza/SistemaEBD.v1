@@ -334,4 +334,277 @@ const ImportMembersComponent = () => {
           'bg-yellow-50 text-yellow-800 border-yellow-200'
         }`}>
           <div className="flex items-center">
-            {message.type === 'success' && <CheckCircle className="h-5
+            {message.type === 'success' && <CheckCircle className="h-5 w-5 mr-2" />}
+            {message.type === 'error' && <AlertCircle className="h-5 w-5 mr-2" />}
+            {message.type === 'warning' && <Info className="h-5 w-5 mr-2" />}
+            {message.text}
+          </div>
+        </div>
+      )}
+
+      {/* Progress Steps */}
+      <div className="flex items-center justify-center space-x-4 mb-8">
+        {[
+          { id: 'upload', label: 'Upload', icon: Upload },
+          { id: 'preview', label: 'Preview', icon: Eye },
+          { id: 'importing', label: 'Importando', icon: RefreshCw },
+          { id: 'completed', label: 'Concluído', icon: Check }
+        ].map((step, index) => {
+          const Icon = step.icon;
+          const isActive = currentStep === step.id;
+          const isCompleted = ['upload', 'preview', 'importing', 'completed'].indexOf(currentStep) > index;
+          
+          return (
+            <div key={step.id} className="flex items-center">
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                isActive ? 'bg-blue-600 text-white' :
+                isCompleted ? 'bg-green-600 text-white' :
+                'bg-gray-200 text-gray-600'
+              }`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <span className={`ml-2 text-sm font-medium ${
+                isActive ? 'text-blue-600' :
+                isCompleted ? 'text-green-600' :
+                'text-gray-500'
+              }`}>
+                {step.label}
+              </span>
+              {index < 3 && <div className="w-8 h-px bg-gray-300 mx-4" />}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Step Content */}
+      {currentStep === 'upload' && (
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="text-center">
+              <div className="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+                <FileSpreadsheet className="h-12 w-12 text-blue-600" />
+              </div>
+              
+              <h3 className="text-xl font-semibold mb-4">Selecione o arquivo Excel</h3>
+              <p className="text-gray-600 mb-6">
+                Faça upload da planilha com os dados dos membros da Nova Brasília I
+              </p>
+
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-blue-400 transition-colors">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-700">
+                    Clique para selecionar ou arraste o arquivo aqui
+                  </p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Formatos suportados: .xlsx, .xls
+                  </p>
+                </label>
+              </div>
+
+              {selectedFile && (
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <div className="flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-blue-600 mr-2" />
+                    <span className="font-medium text-blue-800">{selectedFile.name}</span>
+                  </div>
+                  {loading && (
+                    <div className="mt-3 flex items-center justify-center text-blue-600">
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      Processando arquivo...
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {currentStep === 'preview' && detectedPattern && (
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-semibold flex items-center">
+                  <span className="text-2xl mr-2">{importPatterns[detectedPattern].icon}</span>
+                  {importPatterns[detectedPattern].name}
+                </h3>
+                <p className="text-gray-600">{importPatterns[detectedPattern].description}</p>
+              </div>
+              <div className={`px-4 py-2 rounded-full text-sm font-medium ${
+                importPatterns[detectedPattern].color === 'blue' ? 'bg-blue-100 text-blue-800' :
+                importPatterns[detectedPattern].color === 'green' ? 'bg-green-100 text-green-800' :
+                importPatterns[detectedPattern].color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-purple-100 text-purple-800'
+              }`}>
+                Padrão Detectado
+              </div>
+            </div>
+
+            {/* Estatísticas */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <Users className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-blue-800">{importStats.total}</div>
+                <div className="text-sm text-blue-600">Total</div>
+              </div>
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-blue-800">{importStats.adultos}</div>
+                <div className="text-sm text-blue-600">Adultos</div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-green-800">{importStats.jovens}</div>
+                <div className="text-sm text-green-600">Jovens</div>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-yellow-800">{importStats.criancas}</div>
+                <div className="text-sm text-yellow-600">Crianças</div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg text-center">
+                <UserPlus className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+                <div className="text-xs font-medium text-purple-800">{importStats.responsavel}</div>
+                <div className="text-xs text-purple-600">Responsável</div>
+              </div>
+            </div>
+
+            {/* Preview dos dados */}
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold mb-4">Preview dos Dados ({importData.length} registros)</h4>
+              <div className="max-h-96 overflow-y-auto border rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Função</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Classificação</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grupo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {importData.slice(0, 10).map((member, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{member.nome}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{member.telefone}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{member.funcao}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getClassificationColor(member.classificacao)}`}>
+                            {member.classificacao}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{member.grupo}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {importData.length > 10 && (
+                  <div className="p-4 bg-gray-50 text-center text-sm text-gray-600">
+                    ... e mais {importData.length - 10} registros
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Ações */}
+            <div className="flex justify-between">
+              <button
+                onClick={resetImport}
+                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Selecionar Outro Arquivo
+              </button>
+              <button
+                onClick={handleImport}
+                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Importar {importStats.total} Membros
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {currentStep === 'importing' && (
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+              <RefreshCw className="h-12 w-12 text-blue-600 animate-spin" />
+            </div>
+            <h3 className="text-xl font-semibold mb-4">Importando Membros...</h3>
+            <p className="text-gray-600 mb-6">
+              Processando {importStats.total} registros da Nova Brasília I
+            </p>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+            </div>
+            <p className="text-sm text-gray-500 mt-2">Salvando no sistema...</p>
+          </div>
+        </div>
+      )}
+
+      {currentStep === 'completed' && (
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
+              <CheckCircle className="h-12 w-12 text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold mb-4">Importação Concluída!</h3>
+            <p className="text-gray-600 mb-6">
+              {importStats.total} membros da Nova Brasília I foram importados com sucesso
+            </p>
+
+            <div className="bg-green-50 rounded-lg p-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="text-center">
+                  <div className="font-semibold text-green-800">{importStats.adultos}</div>
+                  <div className="text-green-600">Adultos</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-green-800">{importStats.jovens}</div>
+                  <div className="text-green-600">Jovens</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-green-800">{importStats.criancas}</div>
+                  <div className="text-green-600">Crianças</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-green-800">1</div>
+                  <div className="text-green-600">Responsável</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={resetImport}
+                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Nova Importação
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Ver Membros Importados
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ImportMembersComponent;
