@@ -51,7 +51,18 @@ const AutomationComponent = () => {
       runs: 12
     }
   ]);
+// Em qualquer componente
+import { 
+  DENOMINACOES, 
+  FUNCOES_IGREJA, 
+  CATEGORIAS_PARTICIPACAO,
+  UTILS 
+} from '../config/ebdConfig';
 
+// Usar as configurações
+const denominacoes = DENOMINACOES.filter(d => d.ativo);
+const periodoAtivo = UTILS.verificarPeriodoParticipacao();
+  
   const [pdfContent] = useState({
     title: 'Lição 45 - O Amor de Deus',
     extractedText: `
