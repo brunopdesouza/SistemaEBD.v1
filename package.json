@@ -2,31 +2,42 @@
   "name": "sistema-ebd-icm",
   "version": "1.0.0",
   "description": "Sistema completo de gestão da Escola Bíblica Dominical - Igreja Cristã Maranata",
+  "author": "Bruno Pereira de Souza",
+  "license": "MIT",
+  "homepage": "https://sistemaebd.netlify.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brunopdesouza/SistemaEBD.v1.git"
+  },
   "private": true,
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^14.5.2",
+    "@supabase/supabase-js": "^2.39.7",
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
-    "lucide-react": "^0.263.1",
-    "tailwindcss": "^3.3.0",
+    "web-vitals": "^2.1.4"
+  },
+  "devDependencies": {
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.24",
-    "web-vitals": "^2.1.4",
-    "pdf-parse": "^1.1.1"
+    "tailwindcss": "^3.3.2"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "deploy": "npm run build && echo 'Deploy to Netlify'",
-    "dev": "npm start",
-    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
-    "format": "prettier --write src/**/*.{js,jsx,ts,tsx,json,css,md}"
+    "build:analyze": "npm run build && npx bundle-analyzer build/static/js/*.js",
+    "lint": "eslint src --ext .js,.jsx",
+    "lint:fix": "eslint src --ext .js,.jsx --fix",
+    "format": "prettier --write src/**/*.{js,jsx,css,md}",
+    "deploy": "npm run build && netlify deploy --prod --dir=build",
+    "db:seed": "node scripts/seed-database.js",
+    "db:migrate": "node scripts/migrate-database.js"
   },
   "eslintConfig": {
     "extends": [
@@ -46,24 +57,27 @@
       "last 1 safari version"
     ]
   },
-  "devDependencies": {
-    "eslint": "^8.45.0",
-    "prettier": "^2.8.8"
-  },
   "keywords": [
     "ebd",
-    "escola-biblica",
-    "igreja-crista-maranata",
+    "igreja",
+    "cristã",
+    "maranata",
+    "gestão",
+    "membros",
+    "escola",
+    "bíblica",
+    "dominical",
     "react",
     "supabase",
-    "postgresql",
-    "sistema-gestao"
+    "postgresql"
   ],
-  "author": "Bruno Pereira de Souza",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/brunopdesouza/SistemaEBD.v1"
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
   },
-  "homepage": "https://sistemaebd.netlify.app"
+  "config": {
+    "database": "postgresql",
+    "backend": "supabase",
+    "deployment": "netlify"
+  }
 }
