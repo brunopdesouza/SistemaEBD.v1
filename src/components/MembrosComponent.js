@@ -13,8 +13,6 @@ import {
   MapPin,
   Calendar,
   User,
-  Save,
-  X,
   Loader2,
   AlertCircle,
   CheckCircle,
@@ -34,9 +32,6 @@ const MembrosComponent = ({ currentUser, showMessage }) => {
   const [filtroSituacao, setFiltroSituacao] = useState('todos');
   const [showModal, setShowModal] = useState(false);
   const [editingMembro, setEditingMembro] = useState(null);
-  const [viewingMembro, setViewingMembro] = useState(null);
-  const [igrejas, setIgrejas] = useState([]);
-  const [grupos, setGrupos] = useState([]);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [estatisticas, setEstatisticas] = useState({
@@ -51,14 +46,6 @@ const MembrosComponent = ({ currentUser, showMessage }) => {
   // =============================================================================
   // 🔄 CARREGAMENTO INICIAL
   // =============================================================================
-  useEffect(() => {
-    loadInitialData();
-  }, [currentUser]);
-
-  useEffect(() => {
-    loadMembros();
-  }, [paginaAtual, searchTerm, filtroSituacao]);
-
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -71,8 +58,7 @@ const MembrosComponent = ({ currentUser, showMessage }) => {
         )
       ]);
 
-      setIgrejas(igrejasData);
-      setGrupos(gruposData);
+      console.log('Dados carregados:', { igrejas: igrejasData.length, grupos: gruposData.length });
       
     } catch (error) {
       console.error('Erro ao carregar dados iniciais:', error);
@@ -130,63 +116,18 @@ const MembrosComponent = ({ currentUser, showMessage }) => {
     }
   };
 
+  useEffect(() => {
+    loadInitialData();
+  }, [currentUser]);
+
+  useEffect(() => {
+    loadMembros();
+  }, [paginaAtual, searchTerm, filtroSituacao, currentUser]);
+
   // =============================================================================
   // 🔧 FUNÇÕES DE CRUD
   // =============================================================================
-  const handleSaveMembro = async (dadosMembro) => {
-    try {
-      setLoading(true);
-      
-      // Validações básicas
-      if (!dadosMembro.nome_completo?.trim()) {
-        showMessage('error', 'Nome completo é obrigatório');
-        return;
-      }
-      
-      if (dadosMembro.email && !utils.validateEmail(dadosMembro.email)) {
-        showMessage('error', 'Email inválido');
-        return;
-      }
-
-      // Aplicar dados organizacionais baseados no perfil
-      const membroData = {
-        ...dadosMembro,
-        igreja_id: currentUser?.perfil_acesso === 'admin' 
-          ? dadosMembro.igreja_id 
-          : currentUser.igreja_id,
-        grupo_id: currentUser?.perfil_acesso === 'grupo' 
-          ? currentUser.grupo_id 
-          : dadosMembro.grupo_id,
-        situacao: dadosMembro.situacao || 'ativo'
-      };
-
-      let resultado;
-      if (editingMembro) {
-        // Atualizar membro existente
-        resultado = await membrosService.atualizar(
-          editingMembro.id, 
-          membroData, 
-          currentUser.id
-        );
-        showMessage('success', 'Membro atualizado com sucesso!');
-      } else {
-        // Criar novo membro
-        resultado = await membrosService.criar(membroData, currentUser.id);
-        showMessage('success', 'Membro cadastrado com sucesso!');
-      }
-
-      setShowModal(false);
-      setEditingMembro(null);
-      loadMembros();
-      
-    } catch (error) {
-      console.error('Erro ao salvar membro:', error);
-      showMessage('error', error.message || 'Erro ao salvar membro');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  
   const handleDeleteMembro = async (membro) => {
     if (!window.confirm(`Tem certeza que deseja inativar ${membro.nome_completo}?`)) {
       return;
@@ -409,7 +350,7 @@ const MembrosComponent = ({ currentUser, showMessage }) => {
         
         <div className="flex gap-2">
           <button
-            onClick={() => setViewingMembro(membro)}
+            onClick={() => console.log('Visualizar membro:', membro.id)}
             className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
             title="Visualizar"
           >
