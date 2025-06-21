@@ -1,4 +1,4 @@
-// src/components/ImportMembersComponent.js
+// src/components/ImportMembersComponent.js - Versão com Suporte a PDF
 import React, { useState, useEffect } from 'react';
 import { 
   Upload, 
@@ -11,21 +11,29 @@ import {
   Database,
   Loader2,
   FileSpreadsheet,
-  Check
+  Check,
+  File,
+  Eye,
+  FileImage
 } from 'lucide-react';
 
 // Import dos serviços reais do Supabase
 import { membrosService, organizacaoService, supabase } from '../lib/supabase';
 
+// Import do handler de PDF
+import { processPdfMembros, importarMembrosValidados, analisarPdfCarregado } from '../utils/pdfImportHandler';
+
 const ImportMembersComponent = ({ currentUser, showMessage }) => {
   // =============================================================================
-  // 🎯 ESTADOS PRINCIPAIS - SEM DADOS MOCKADOS
+  // 🎯 ESTADOS PRINCIPAIS
   // =============================================================================
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
+  const [fileType, setFileType] = useState(null); // 'pdf', 'csv', 'excel'
   const [dados, setDados] = useState([]);
   const [dadosValidados, setDadosValidados] = useState([]);
+  const [pdfAnalise, setPdfAnalise] = useState(null);
   const [igrejas, setIgrejas] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [estatisticas, setEstatisticas] = useState({
@@ -72,7 +80,7 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
       const { data: ultimaImportacao } = await supabase
         .from('logs_sistema')
         .select('timestamp')
-        .eq('tipo_operacao', 'IMPORTACAO_MEMBROS')
+        .or('tipo_operacao.eq.IMPORTACAO_MEMBROS,tipo_operacao.eq.IMPORTACAO_PDF_MEMBROS')
         .order('timestamp', { ascending: false })
         .limit(1)
         .single();
@@ -98,15 +106,60 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
   // 🛠️ FUNÇÕES DE IMPORTAÇÃO
   // =============================================================================
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = async (event) => {
     const uploadedFile = event.target.files[0];
     if (!uploadedFile) return;
 
     setFile(uploadedFile);
-    processFile(uploadedFile);
+    
+    // Detectar tipo de arquivo
+    const fileExtension = uploadedFile.name.toLowerCase().split('.').pop();
+    const detectedType = 
+      fileExtension === 'pdf' ? 'pdf' :
+      ['csv', 'txt'].includes(fileExtension) ? 'csv' :
+      ['xlsx', 'xls'].includes(fileExtension) ? 'excel' :
+      'unknown';
+    
+    setFileType(detectedType);
+    
+    // Processar baseado no tipo
+    if (detectedType === 'pdf') {
+      await processarPDF(uploadedFile);
+    } else {
+      await processarArquivoTexto(uploadedFile);
+    }
   };
 
-  const processFile = async (file) => {
+  const processarPDF = async (file) => {
+    try {
+      setLoading(true);
+      console.log('📄 Processando PDF:', file.name);
+      
+      // Analisar PDF primeiro
+      const analise = await analisarPdfCarregado(file);
+      setPdfAnalise(analise);
+      
+      if (!analise?.compativel) {
+        throw new Error('Arquivo PDF não é compatível');
+      }
+
+      // Processar PDF usando o handler
+      const resultado = await processPdfMembros(file, currentUser, showMessage);
+      
+      setDados(resultado.membros);
+      setStep(2);
+      
+      console.log(`✅ PDF processado: ${resultado.total_extraidos} membros encontrados`);
+      
+    } catch (error) {
+      console.error('❌ Erro ao processar PDF:', error);
+      showMessage?.('error', `Erro ao processar PDF: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const processarArquivoTexto = async (file) => {
     try {
       setLoading(true);
       console.log('📄 Processando arquivo:', file.name);
@@ -162,6 +215,14 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
       setLoading(true);
       console.log('🔍 Validando dados para importação...');
 
+      // Se for PDF, dados já vêm validados
+      if (fileType === 'pdf') {
+        setDadosValidados(dados);
+        setStep(3);
+        return;
+      }
+
+      // Validação para CSV/Excel
       const dadosValidos = dados.map(item => {
         const errors = [];
         
@@ -213,80 +274,93 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
       setLoading(true);
       console.log('💾 Iniciando importação para PostgreSQL...');
 
-      const dadosParaImportar = dadosValidados.filter(d => d.valid);
-      
-      if (dadosParaImportar.length === 0) {
-        throw new Error('Nenhum dado válido para importar');
-      }
-
-      // Preparar dados para inserção
-      const membrosParaInserir = dadosParaImportar.map(item => ({
-        nome_completo: item.nome_completo,
-        email: item.email,
-        celular: item.celular,
-        telefone: item.telefone || item.celular,
-        genero: item.genero || item.sexo,
-        data_nascimento: item.data_nascimento,
-        estado_civil: item.estado_civil,
-        profissao: item.profissao,
-        endereco_completo: item.endereco || item.endereco_completo,
-        cidade: item.cidade,
-        estado: item.estado || item.uf,
-        cep: item.cep,
-        igreja_id: currentUser?.igreja_id,
-        grupo_id: currentUser?.grupo_id,
-        funcao_igreja: item.funcao || 'Membro',
-        situacao: 'ativo',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }));
-
-      // Inserir no banco usando lotes
-      const batchSize = 50;
-      let totalImportados = 0;
-
-      for (let i = 0; i < membrosParaInserir.length; i += batchSize) {
-        const batch = membrosParaInserir.slice(i, i + batchSize);
+      // Usar handler específico para PDF ou genérico
+      if (fileType === 'pdf') {
+        const resultado = await importarMembrosValidados(dadosValidados, currentUser, showMessage);
         
-        const { data, error } = await supabase
-          .from('membros')
-          .insert(batch)
-          .select();
-
-        if (error) {
-          console.error('Erro no lote:', error);
-          throw error;
+        setStep(4);
+        setEstatisticas(prev => ({
+          ...prev,
+          total_membros: prev.total_membros + resultado.total_importados,
+          importados_hoje: prev.importados_hoje + resultado.total_importados,
+          ultima_importacao: new Date().toISOString()
+        }));
+        
+      } else {
+        // Importação CSV/Excel (código existente)
+        const dadosParaImportar = dadosValidados.filter(d => d.valid);
+        
+        if (dadosParaImportar.length === 0) {
+          throw new Error('Nenhum dado válido para importar');
         }
 
-        totalImportados += data?.length || 0;
-        console.log(`✅ Lote ${Math.floor(i/batchSize) + 1} importado: ${data?.length} membros`);
+        // Preparar dados para inserção
+        const membrosParaInserir = dadosParaImportar.map(item => ({
+          nome_completo: item.nome_completo,
+          email: item.email,
+          celular: item.celular,
+          telefone: item.telefone || item.celular,
+          genero: item.genero || item.sexo,
+          data_nascimento: item.data_nascimento,
+          estado_civil: item.estado_civil,
+          profissao: item.profissao,
+          endereco_completo: item.endereco || item.endereco_completo,
+          cidade: item.cidade,
+          estado: item.estado || item.uf,
+          cep: item.cep,
+          igreja_id: currentUser?.igreja_id,
+          grupo_id: currentUser?.grupo_id,
+          funcao_igreja: item.funcao || 'Membro',
+          situacao: 'ativo',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }));
+
+        // Inserir no banco usando lotes
+        const batchSize = 50;
+        let totalImportados = 0;
+
+        for (let i = 0; i < membrosParaInserir.length; i += batchSize) {
+          const batch = membrosParaInserir.slice(i, i + batchSize);
+          
+          const { data, error } = await supabase
+            .from('membros')
+            .insert(batch)
+            .select();
+
+          if (error) {
+            console.error('Erro no lote:', error);
+            throw error;
+          }
+
+          totalImportados += data?.length || 0;
+          console.log(`✅ Lote ${Math.floor(i/batchSize) + 1} importado: ${data?.length} membros`);
+        }
+
+        // Registrar log da importação
+        await supabase.rpc('inserir_log_basico', {
+          p_tipo_operacao: 'IMPORTACAO_MEMBROS',
+          p_detalhes: {
+            arquivo: file.name,
+            total_processados: dados.length,
+            total_importados: totalImportados,
+            usuario: currentUser?.nome,
+            igreja: currentUser?.igreja
+          },
+          p_usuario_id: currentUser?.id
+        });
+
+        setStep(4);
+        showMessage?.('success', `${totalImportados} membros importados com sucesso!`);
+        
+        // Atualizar estatísticas
+        setEstatisticas(prev => ({
+          ...prev,
+          total_membros: prev.total_membros + totalImportados,
+          importados_hoje: prev.importados_hoje + totalImportados,
+          ultima_importacao: new Date().toISOString()
+        }));
       }
-
-      // Registrar log da importação
-      await supabase.rpc('inserir_log_basico', {
-        p_tipo_operacao: 'IMPORTACAO_MEMBROS',
-        p_detalhes: {
-          arquivo: file.name,
-          total_processados: dados.length,
-          total_importados: totalImportados,
-          usuario: currentUser?.nome,
-          igreja: currentUser?.igreja
-        },
-        p_usuario_id: currentUser?.id
-      });
-
-      setStep(4);
-      showMessage?.('success', `${totalImportados} membros importados com sucesso!`);
-      
-      // Atualizar estatísticas
-      setEstatisticas(prev => ({
-        ...prev,
-        total_membros: prev.total_membros + totalImportados,
-        importados_hoje: prev.importados_hoje + totalImportados,
-        ultima_importacao: new Date().toISOString()
-      }));
-
-      console.log(`🎉 Importação concluída: ${totalImportados} membros salvos no PostgreSQL`);
 
     } catch (error) {
       console.error('❌ Erro na importação:', error);
@@ -298,8 +372,10 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
 
   const resetImportacao = () => {
     setFile(null);
+    setFileType(null);
     setDados([]);
     setDadosValidados([]);
+    setPdfAnalise(null);
     setStep(1);
   };
 
@@ -363,7 +439,7 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
         
         <input
           type="file"
-          accept=".csv,.json,.xlsx"
+          accept=".csv,.json,.xlsx,.pdf"
           onChange={handleFileUpload}
           className="hidden"
           id="file-upload"
@@ -376,19 +452,39 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
         </label>
         
         <div className="mt-4 text-sm text-gray-500">
-          Formatos suportados: CSV, JSON, Excel (.xlsx)
+          Formatos suportados: CSV, JSON, Excel (.xlsx), PDF
         </div>
       </div>
 
-      <div className="mt-6 bg-blue-50 p-4 rounded-lg">
-        <h4 className="font-medium text-blue-900 mb-2">Campos Esperados:</h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-blue-800">
-          <span>• nome_completo</span>
-          <span>• email</span>
-          <span>• celular</span>
-          <span>• genero</span>
-          <span>• data_nascimento</span>
-          <span>• cidade</span>
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Campos para CSV/Excel */}
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h4 className="font-medium text-blue-900 mb-2 flex items-center">
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            CSV / Excel - Campos Esperados:
+          </h4>
+          <div className="grid grid-cols-2 gap-2 text-sm text-blue-800">
+            <span>• nome_completo</span>
+            <span>• email</span>
+            <span>• celular</span>
+            <span>• genero</span>
+            <span>• data_nascimento</span>
+            <span>• cidade</span>
+          </div>
+        </div>
+
+        {/* Suporte para PDF */}
+        <div className="bg-green-50 p-4 rounded-lg">
+          <h4 className="font-medium text-green-900 mb-2 flex items-center">
+            <FileImage className="h-4 w-4 mr-2" />
+            PDF - Formatos Suportados:
+          </h4>
+          <div className="text-sm text-green-800 space-y-1">
+            <span>• Lista de Participantes ICM</span>
+            <span>• Relatórios de Grupos</span>
+            <span>• Cadastros de Membros</span>
+            <span>• Processamento automático</span>
+          </div>
         </div>
       </div>
     </div>
@@ -398,7 +494,14 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
   const EtapaPreview = () => (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">2. Visualizar Dados ({dados.length} registros)</h3>
+        <h3 className="text-lg font-semibold">
+          2. Visualizar Dados ({dados.length} registros)
+          {pdfAnalise && (
+            <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+              PDF: {pdfAnalise.formato_detectado}
+            </span>
+          )}
+        </h3>
         <button
           onClick={validarDados}
           disabled={loading}
@@ -413,11 +516,36 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
         </button>
       </div>
 
+      {/* Informações do PDF */}
+      {pdfAnalise && (
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <h4 className="font-medium text-gray-900 mb-2">Informações do PDF:</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <span className="text-gray-600">Arquivo:</span>
+              <p className="font-medium">{pdfAnalise.nome}</p>
+            </div>
+            <div>
+              <span className="text-gray-600">Tamanho:</span>
+              <p className="font-medium">{pdfAnalise.tamanho_mb} MB</p>
+            </div>
+            <div>
+              <span className="text-gray-600">Formato:</span>
+              <p className="font-medium">{pdfAnalise.formato_detectado}</p>
+            </div>
+            <div>
+              <span className="text-gray-600">Membros:</span>
+              <p className="font-medium">{dados.length} encontrados</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full border border-gray-200 rounded-lg">
           <thead className="bg-gray-50">
             <tr>
-              {dados.length > 0 && Object.keys(dados[0]).map(key => (
+              {dados.length > 0 && Object.keys(dados[0]).slice(0, 6).map(key => (
                 <th key={key} className="p-3 text-left border-b text-sm font-medium text-gray-700">
                   {key}
                 </th>
@@ -425,12 +553,12 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
             </tr>
           </thead>
           <tbody>
-            {dados.slice(0, 5).map((item, index) => (
+            {dados.slice(0, 10).map((item, index) => (
               <tr key={index} className="border-b">
-                {Object.values(item).map((value, i) => (
+                {Object.values(item).slice(0, 6).map((value, i) => (
                   <td key={i} className="p-3 text-sm text-gray-600">
-                    {String(value).substring(0, 50)}
-                    {String(value).length > 50 && '...'}
+                    {String(value).substring(0, 30)}
+                    {String(value).length > 30 && '...'}
                   </td>
                 ))}
               </tr>
@@ -439,9 +567,9 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
         </table>
       </div>
 
-      {dados.length > 5 && (
+      {dados.length > 10 && (
         <p className="text-sm text-gray-500 mt-2">
-          Mostrando 5 de {dados.length} registros
+          Mostrando 10 de {dados.length} registros
         </p>
       )}
     </div>
@@ -492,11 +620,25 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
           </div>
         </div>
 
+        {/* Mostrar preview específico do PDF */}
+        {fileType === 'pdf' && (
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+            <h4 className="font-medium text-blue-900 mb-2">
+              Dados extraídos do PDF - Igreja Cristã Maranata:
+            </h4>
+            <div className="text-sm text-blue-800">
+              <p>• Grupo: {dadosValidados[0]?.pdf_grupo}</p>
+              <p>• Responsável: {dadosValidados[0]?.pdf_responsavel}</p>
+              <p>• Igreja: {currentUser?.igreja}</p>
+            </div>
+          </div>
+        )}
+
         {invalidCount > 0 && (
           <div className="mt-4">
             <h4 className="font-medium text-red-900 mb-2">Registros com Problemas:</h4>
             <div className="max-h-64 overflow-y-auto">
-              {dadosValidados.filter(d => !d.valid).map((item, index) => (
+              {dadosValidados.filter(d => !d.valid).slice(0, 5).map((item, index) => (
                 <div key={index} className="bg-red-50 p-3 rounded border border-red-200 mb-2">
                   <p className="font-medium">Registro {index + 1}: {item.nome_completo}</p>
                   <ul className="text-sm text-red-600 ml-4">
@@ -506,6 +648,11 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
                   </ul>
                 </div>
               ))}
+              {dadosValidados.filter(d => !d.valid).length > 5 && (
+                <p className="text-sm text-gray-500">
+                  ... e mais {dadosValidados.filter(d => !d.valid).length - 5} registros com problemas
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -520,6 +667,7 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
       <h3 className="text-xl font-bold text-gray-900 mb-2">Importação Concluída!</h3>
       <p className="text-gray-600 mb-6">
         Os membros foram importados com sucesso para o PostgreSQL
+        {fileType === 'pdf' && ' a partir do PDF da Igreja Cristã Maranata'}
       </p>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -558,10 +706,10 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
       <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white p-6 rounded-lg">
         <h2 className="text-2xl font-bold mb-2">📥 Importação de Membros</h2>
         <p className="opacity-90">
-          Importar membros para o PostgreSQL - {currentUser?.igreja}
+          Importar membros via CSV, Excel ou PDF - {currentUser?.igreja}
         </p>
         <div className="mt-2 text-sm opacity-75">
-          Sistema conectado ao banco de dados - Dados salvos em tempo real
+          Sistema conectado ao PostgreSQL - Suporte a PDFs da Igreja Cristã Maranata
         </div>
       </div>
 
