@@ -39,20 +39,30 @@ export const authService = {
         throw new Error('Usuário não encontrado ou inativo');
       }
 
-      // Validar senha (temporário - usar hash real em produção)
-      // Por enquanto, comparar direto para facilitar testes
-      const senhasParaTeste = {
+      // Validar senha - Sistema híbrido para compatibilidade
+      let senhaValida = false;
+      
+      // Verificar se é uma conta de teste/demo
+      const contasDemo = {
         'admin@sistema.com': 'admin123',
-        'usuario@teste.com': 'teste123'
+        'usuario@teste.com': 'teste123',
+        'wca.cardoso@hotmail.com': 'walace123', // Responsável do Grupo
+        'brunopdesouza@email.com': 'bruno123'   // Secretário
       };
       
-      const senhaEsperada = senhasParaTeste[email] || usuario.senha_hash;
-      if (senhaEsperada !== senha) {
-        console.error('❌ Senha incorreta');
+      if (contasDemo[email]) {
+        senhaValida = contasDemo[email] === senha;
+      } else if (usuario.senha_hash) {
+        // Para contas reais, usar o hash armazenado
+        senhaValida = usuario.senha_hash === senha; // Implementar bcrypt depois
+      }
+      
+      if (!senhaValida) {
+        console.error('❌ Senha incorreta para:', email);
         
         // Log de tentativa de login falhada
         await this.logLoginAttempt(email, false, null, 'senha_incorreta');
-        throw new Error('Senha incorreta');
+        throw new Error('Credenciais inválidas');
       }
 
       // Validar igreja e função
