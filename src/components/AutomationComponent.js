@@ -3,14 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   Bot,
   Play,
-  Pause,
-  Square,
   Settings,
   Clock,
   CheckCircle,
   AlertCircle,
   Loader2,
-  Calendar,
   FileText,
   Database,
   Zap,
@@ -18,13 +15,7 @@ import {
   BarChart3,
   Cpu,
   HardDrive,
-  Download,
-  Upload,
-  RefreshCw,
-  Eye,
-  Edit,
-  Trash2,
-  Plus
+  RefreshCw
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
@@ -33,7 +24,6 @@ const AutomationComponent = ({ currentUser, showMessage }) => {
   // =============================================================================
   // 🎯 ESTADOS PRINCIPAIS
   // =============================================================================
-  const [automacoes, setAutomacoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [executingTasks, setExecutingTasks] = useState(new Set());
   const [logs, setLogs] = useState([]);
@@ -106,10 +96,6 @@ const AutomationComponent = ({ currentUser, showMessage }) => {
   // =============================================================================
   // 🔄 CARREGAMENTO INICIAL
   // =============================================================================
-  useEffect(() => {
-    loadAutomationData();
-  }, []);
-
   const loadAutomationData = async () => {
     try {
       setLoading(true);
@@ -143,7 +129,6 @@ const AutomationComponent = ({ currentUser, showMessage }) => {
         sucesso_rate: calculateSuccessRate(logsData || [])
       };
 
-      setAutomacoes(automacoesData || []);
       setLogs(logsData || []);
       setStatistics(stats);
       
@@ -154,6 +139,10 @@ const AutomationComponent = ({ currentUser, showMessage }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadAutomationData();
+  }, []);
 
   const calculateSuccessRate = (logs) => {
     if (logs.length === 0) return 0;
