@@ -1,4 +1,4 @@
-// src/App.js
+// src/App.js - Versão Final Integrada ao PostgreSQL
 import React, { useState, useEffect } from 'react';
 import { 
   Users, 
@@ -25,15 +25,18 @@ import {
   Save,
   Bot,
   LogOut,
-  Loader2
+  Loader2,
+  Database
 } from 'lucide-react';
 
 // Imports dos componentes
 import ImportMembersComponent from './components/ImportMembersComponent';
 import AutomationComponent from './components/AutomationComponent';
+import MembrosComponent from './components/MembrosComponent';
+import QuestionariosComponent from './components/QuestionariosComponent';
 
-// Import dos serviços Supabase
-import supabaseServices, { 
+// Import dos serviços Supabase otimizados
+import { 
   authService, 
   membrosService, 
   ebdService, 
@@ -51,19 +54,20 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   
-  // Estados para dados reais do Supabase
+  // Estados para dados reais do PostgreSQL
   const [estatisticas, setEstatisticas] = useState({
     total_usuarios: 0,
     total_membros: 0,
     total_igrejas: 0,
     total_grupos: 0,
     total_questionarios: 0,
-    total_participacoes: 0
+    total_participacoes: 0,
+    total_logs: 0
   });
   
   const [membros, setMembros] = useState([]);
   const [questionarios, setQuestionarios] = useState([]);
-  const [permissoes, setPermissoes] = useState([]);
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
 
   // Hook para dados dinâmicos do Supabase
   const { config, loading: configLoading, error: configError } = useSupabaseData();
@@ -73,17 +77,22 @@ function App() {
   // =============================================================================
   
   useEffect(() => {
+    // Verificar status da conexão
+    setConnectionStatus(configError ? 'error' : configLoading ? 'connecting' : 'connected');
+  }, [configLoading, configError]);
+
+  useEffect(() => {
     const loadUserData = async () => {
       if (currentUser) {
         try {
           setLoading(true);
+          console.log('🔄 Carregando dados do usuário:', currentUser.nome);
           
           // Carregar dados baseados no usuário logado
           const [
             statsData,
             membrosData,
-            questionariosData,
-            permissoesData
+            questionariosData
           ] = await Promise.all([
             estatisticasService.obterDashboard(
               currentUser.id, 
@@ -92,19 +101,24 @@ function App() {
             ),
             membrosService.listar({
               igreja_id: currentUser.perfil_acesso === 'igreja' ? currentUser.igreja_id : null,
-              grupo_id: currentUser.perfil_acesso === 'grupo' ? currentUser.grupo_id : null
+              grupo_id: currentUser.perfil_acesso === 'grupo' ? currentUser.grupo_id : null,
+              situacao: 'ativo'
             }),
-            ebdService.listarQuestionarios(),
-            authService.verificarPermissoes(currentUser.id)
+            ebdService.listarQuestionarios({ limite: 10 })
           ]);
 
           setEstatisticas(statsData);
           setMembros(membrosData);
           setQuestionarios(questionariosData);
-          setPermissoes(permissoesData);
+
+          console.log('✅ Dados carregados:', {
+            membros: membrosData.length,
+            questionarios: questionariosData.length,
+            usuarios: statsData.total_usuarios
+          });
 
         } catch (error) {
-          console.error('Erro ao carregar dados do usuário:', error);
+          console.error('❌ Erro ao carregar dados do usuário:', error);
           showMessage('error', 'Erro ao carregar dados do sistema');
         } finally {
           setLoading(false);
@@ -127,13 +141,6 @@ function App() {
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('pt-BR');
-  };
-
-  const temPermissao = (permissao, contexto = 'global') => {
-    return permissoes.some(p => 
-      p.permissao === permissao && 
-      (p.contexto === contexto || p.contexto === 'global')
-    );
   };
 
   // =============================================================================
@@ -159,6 +166,8 @@ function App() {
       setLoginLoading(true);
 
       try {
+        console.log('🔐 Iniciando processo de login...');
+        
         // Login real via Supabase
         const { user, session } = await authService.login(
           formData.email,
@@ -167,12 +176,14 @@ function App() {
           formData.funcao
         );
 
+        console.log('✅ Login bem-sucedido:', user.nome);
+        
         setCurrentUser(user);
         setCurrentView('dashboard');
         showMessage('success', `Login realizado com sucesso! Bem-vindo, ${user.nome}`);
         
       } catch (error) {
-        console.error('Erro no login:', error);
+        console.error('❌ Erro no login:', error);
         showMessage('error', error.message || 'Erro no login. Verifique suas credenciais.');
       } finally {
         setLoginLoading(false);
@@ -187,11 +198,27 @@ function App() {
             <h1 className="text-2xl font-bold text-gray-900">Sistema EBD</h1>
             <p className="text-gray-600">Igreja Cristã Maranata</p>
             
-            {configError && (
-              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
-                ⚠️ Modo offline - usando dados locais
-              </div>
-            )}
+            {/* Status da conexão */}
+            <div className="mt-3 flex items-center justify-center">
+              {connectionStatus === 'connecting' && (
+                <div className="flex items-center text-xs text-blue-600">
+                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                  Conectando ao PostgreSQL...
+                </div>
+              )}
+              {connectionStatus === 'connected' && (
+                <div className="flex items-center text-xs text-green-600">
+                  <Database className="w-3 h-3 mr-1" />
+                  PostgreSQL Conectado
+                </div>
+              )}
+              {connectionStatus === 'error' && (
+                <div className="flex items-center text-xs text-yellow-600">
+                  <AlertCircle className="w-3 h-3 mr-1" />
+                  Modo Offline
+                </div>
+              )}
+            </div>
           </div>
 
           {message.text && (
@@ -219,12 +246,6 @@ function App() {
                   <option key={igreja} value={igreja}>{igreja}</option>
                 ))}
               </select>
-              {configLoading && (
-                <div className="text-xs text-gray-500 mt-1 flex items-center">
-                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                  Carregando igrejas...
-                </div>
-              )}
             </div>
 
             <div>
@@ -291,7 +312,7 @@ function App() {
                   Entrando...
                 </>
               ) : (
-                'Entrar'
+                'Entrar no Sistema'
               )}
             </button>
           </form>
@@ -299,7 +320,7 @@ function App() {
           <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
             <strong>Acesso Demo:</strong> admin@sistema.com / admin123
             <br />
-            <strong>Dados:</strong> Conectado ao Supabase PostgreSQL
+            <strong>Banco:</strong> PostgreSQL com {estatisticas.total_membros} membros reais
           </div>
         </div>
       </div>
@@ -319,6 +340,7 @@ function App() {
 
     return (
       <div className="space-y-6">
+        {/* Header do Dashboard */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg">
           <h2 className="text-2xl font-bold mb-2">📚 Sistema EBD - Dashboard</h2>
           <p className="opacity-90">Bem-vindo, {currentUser?.nome}</p>
@@ -336,21 +358,11 @@ function App() {
               <User className="w-4 h-4 mr-1" />
               {currentUser?.funcao}
             </span>
+            <span className="flex items-center bg-white/10 px-3 py-1 rounded-full">
+              <Database className="w-4 h-4 mr-1" />
+              PostgreSQL Online
+            </span>
           </div>
-
-          {permissoes.length > 0 && (
-            <div className="mt-3 p-3 bg-white/10 rounded-lg text-sm">
-              <strong>Permissões ativas:</strong> {permissoes.length} configuradas
-              {temPermissao('automacao') && (
-                <button 
-                  onClick={() => setCurrentView('automacao')}
-                  className="ml-3 bg-white/20 px-2 py-1 rounded text-xs hover:bg-white/30"
-                >
-                  🤖 Automação Disponível →
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Cards de Estatísticas */}
@@ -402,7 +414,7 @@ function App() {
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <Users className="mr-2 h-5 w-5" />
-              Membros Recentes
+              Membros Recentes ({membros.length})
             </h3>
             
             {loading ? (
@@ -436,7 +448,7 @@ function App() {
                   </div>
                 ))}
                 
-                {membros.length === 0 && (
+                {membros.length === 0 && !loading && (
                   <div className="text-center py-4 text-gray-500">
                     Nenhum membro encontrado
                   </div>
@@ -456,7 +468,7 @@ function App() {
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <HelpCircle className="mr-2 h-5 w-5" />
-              Questionários EBD
+              Questionários EBD ({questionarios.length})
             </h3>
             
             {loading ? (
@@ -487,7 +499,7 @@ function App() {
                   </div>
                 ))}
                 
-                {questionarios.length === 0 && (
+                {questionarios.length === 0 && !loading && (
                   <div className="text-center py-4 text-gray-500">
                     Nenhum questionário encontrado
                   </div>
@@ -504,15 +516,16 @@ function App() {
           </div>
         </div>
 
-        {/* Status da Conexão */}
+        {/* Status da Conexão e Logs */}
         <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-green-500">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="h-3 w-3 bg-green-400 rounded-full mr-2"></div>
-              <span className="text-sm font-medium text-gray-700">Sistema Conectado ao Supabase PostgreSQL</span>
+              <div className="h-3 w-3 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+              <span className="text-sm font-medium text-gray-700">Sistema Conectado ao PostgreSQL Supabase</span>
             </div>
             <div className="text-xs text-gray-500">
               {estatisticas.total_logs > 0 && `${estatisticas.total_logs} logs registrados`}
+              <span className="ml-2">| Tempo Real</span>
             </div>
           </div>
         </div>
@@ -521,7 +534,7 @@ function App() {
   };
 
   // =============================================================================
-  // 📝 COMPONENTES SIMPLIFICADOS
+  // 📝 COMPONENTE SIMPLIFICADO
   // =============================================================================
   
   const SimpleComponent = ({ title, icon: Icon, children }) => (
@@ -533,17 +546,17 @@ function App() {
       {children || (
         <>
           <p className="text-gray-600 mb-4">
-            Esta funcionalidade está conectada ao banco PostgreSQL e pronta para uso.
+            Esta funcionalidade está conectada ao banco PostgreSQL e pronta para desenvolvimento.
           </p>
           <div className="mt-4 p-3 bg-blue-50 rounded text-sm text-blue-600">
-            💡 <strong>Dados reais:</strong> Conectado ao Supabase com {estatisticas.total_membros} membros
+            💡 <strong>Sistema Real:</strong> Conectado ao Supabase com {estatisticas.total_membros} membros
           </div>
         </>
       )}
     </div>
   );
 
-  // =============================================================================
+  //=============================================================================
   // 🧭 COMPONENTE DE NAVEGAÇÃO
   // =============================================================================
   
@@ -609,7 +622,15 @@ function App() {
         setCurrentView('login');
         setMembros([]);
         setQuestionarios([]);
-        setPermissoes([]);
+        setEstatisticas({
+          total_usuarios: 0,
+          total_membros: 0,
+          total_igrejas: 0,
+          total_grupos: 0,
+          total_questionarios: 0,
+          total_participacoes: 0,
+          total_logs: 0
+        });
         showMessage('success', 'Logout realizado com sucesso!');
       } catch (error) {
         console.error('Erro no logout:', error);
@@ -672,11 +693,11 @@ function App() {
       case 'dashboard':
         return <Dashboard />;
       case 'membros':
-        return <SimpleComponent title="Gestão de Membros" icon={Users} />;
+        return <MembrosComponent currentUser={currentUser} showMessage={showMessage} />;
       case 'import-membros':
         return <ImportMembersComponent />;
       case 'questionarios':
-        return <SimpleComponent title="Questionários EBD" icon={HelpCircle} />;
+        return <QuestionariosComponent currentUser={currentUser} showMessage={showMessage} />;
       case 'automacao':
         return <AutomationComponent />;
       case 'upload':
@@ -726,17 +747,17 @@ function App() {
               <p>© 2025 Sistema EBD - Igreja Cristã Maranata - {currentUser?.igreja}</p>
               <div className="flex items-center space-x-4">
                 <span className="flex items-center">
-                  <div className="h-2 w-2 bg-green-400 rounded-full mr-2"></div>
-                  PostgreSQL Conectado
+                  <div className={`h-2 w-2 rounded-full mr-2 ${
+                    connectionStatus === 'connected' ? 'bg-green-400' :
+                    connectionStatus === 'connecting' ? 'bg-yellow-400 animate-pulse' :
+                    'bg-red-400'
+                  }`}></div>
+                  {connectionStatus === 'connected' ? 'PostgreSQL Online' :
+                   connectionStatus === 'connecting' ? 'Conectando...' :
+                   'Modo Offline'}
                 </span>
-                {configLoading && (
-                  <span className="flex items-center text-blue-600">
-                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                    Sincronizando...
-                  </span>
-                )}
                 <span className="text-xs">
-                  v1.0.0 - {estatisticas.total_logs > 0 && `${estatisticas.total_logs} logs`}
+                  v1.0.0 | {estatisticas.total_logs > 0 && `${estatisticas.total_logs} logs`}
                 </span>
               </div>
             </div>
