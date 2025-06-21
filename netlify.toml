@@ -1,31 +1,29 @@
+# netlify.toml - Configuração de Deploy do Sistema EBD
 [build]
   publish = "build"
-  command = "npm run build"
-  functions = "netlify/functions"
+  command = "CI=false npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
-  NPM_VERSION = "9"
-  REACT_APP_SUPABASE_URL = ""
-  REACT_APP_SUPABASE_ANON_KEY = ""
-  REACT_APP_ENV = "production"
+  NPM_VERSION = "8"
+  CI = "false"
+  GENERATE_SOURCEMAP = "false"
 
-# Configurações para SPA React
+# Variáveis de ambiente (configure no painel do Netlify)
+# REACT_APP_SUPABASE_URL
+# REACT_APP_SUPABASE_ANON_KEY
+
+# Redirecionamentos para SPA
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Configuração para APIs Python
-[[redirects]]
-  from = "/api/pdf/*"
-  to = "/.netlify/functions/pdf-processor/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/api/automation/*"
-  to = "/.netlify/functions/automation/:splat"
-  status = 200
+# Cache para arquivos estáticos
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 # Headers de segurança
 [[headers]]
@@ -35,47 +33,11 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://sifneeexxbqgscqinbwm.supabase.co;"
 
-# Headers para arquivos estáticos
-[[headers]]
-  for = "/static/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Headers para PDFs
+# Cache para PDFs
 [[headers]]
   for = "*.pdf"
   [headers.values]
-    Content-Type = "application/pdf"
     Cache-Control = "public, max-age=86400"
-
-# Configurações de build context
-[context.production]
-  command = "npm run build"
-
-[context.deploy-preview]
-  command = "npm run build"
-
-[context.branch-deploy]
-  command = "npm run build"
-
-# Configurações de formulários Netlify
-[build.processing]
-  skip_processing = false
-
-[build.processing.css]
-  bundle = true
-  minify = true
-
-[build.processing.js]
-  bundle = true
-  minify = true
-
-[build.processing.html]
-  pretty_urls = true
-
-# Configurações para uploads de PDF
-[[edge_functions]]
-  function = "pdf-upload"
-  path = "/api/upload/*"
+    Content-Type = "application/pdf"
