@@ -9,10 +9,6 @@
   CI = "false"
   GENERATE_SOURCEMAP = "false"
 
-# Variáveis de ambiente (configure no painel do Netlify)
-# REACT_APP_SUPABASE_URL
-# REACT_APP_SUPABASE_ANON_KEY
-
 # Redirecionamentos para SPA
 [[redirects]]
   from = "/*"
@@ -34,10 +30,3 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://sifneeexxbqgscqinbwm.supabase.co;"
-
-# Cache para PDFs
-[[headers]]
-  for = "*.pdf"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
-    Content-Type = "application/pdf"
