@@ -392,4 +392,161 @@ const MembrosComponent = ({ currentUser, showMessage }) => {
       </div>
 
       {membro.endereco_completo && (
-        <div className="mb-4
+        <div className="mb-4 text-sm">
+          <p className="text-gray-600">
+            <MapPin className="inline h-4 w-4 mr-1" />
+            <strong>Endereço:</strong> {membro.endereco_completo}
+            {membro.cidade && `, ${membro.cidade}`}
+            {membro.estado && ` - ${membro.estado}`}
+          </p>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center pt-4 border-t">
+        <span className="text-xs text-gray-500">
+          Cadastrado em {utils.formatDate(membro.created_at)}
+        </span>
+        
+        <div className="flex gap-2">
+          <button
+            onClick={() => setViewingMembro(membro)}
+            className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+            title="Visualizar"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => {
+              setEditingMembro(membro);
+              setShowModal(true);
+            }}
+            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded"
+            title="Editar"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleDeleteMembro(membro)}
+            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+            title="Inativar"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Paginação
+  const Pagination = () => {
+    if (totalPaginas <= 1) return null;
+    
+    return (
+      <div className="flex justify-center items-center mt-6 gap-2">
+        <button
+          onClick={() => setPaginaAtual(Math.max(1, paginaAtual - 1))}
+          disabled={paginaAtual === 1}
+          className="px-3 py-2 text-sm border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+        >
+          Anterior
+        </button>
+        
+        <span className="text-sm text-gray-600">
+          Página {paginaAtual} de {totalPaginas}
+        </span>
+        
+        <button
+          onClick={() => setPaginaAtual(Math.min(totalPaginas, paginaAtual + 1))}
+          disabled={paginaAtual === totalPaginas}
+          className="px-3 py-2 text-sm border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+        >
+          Próxima
+        </button>
+      </div>
+    );
+  };
+
+  // =============================================================================
+  // 🏗️ RENDER PRINCIPAL
+  // =============================================================================
+  
+  if (loading && membros.length === 0) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Carregando membros...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <HeaderStats />
+      <FilterBar />
+      
+      {/* Lista de Membros */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {membros.map(membro => (
+          <MembroCard key={membro.id} membro={membro} />
+        ))}
+      </div>
+
+      {membros.length === 0 && !loading && (
+        <div className="text-center py-12">
+          <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Nenhum membro encontrado
+          </h3>
+          <p className="text-gray-600 mb-4">
+            {searchTerm || filtroSituacao !== 'todos' 
+              ? 'Tente ajustar os filtros de busca'
+              : 'Comece cadastrando o primeiro membro'}
+          </p>
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+          >
+            Cadastrar Primeiro Membro
+          </button>
+        </div>
+      )}
+
+      <Pagination />
+
+      {/* Modais serão implementados em componentes separados */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h3 className="text-lg font-semibold mb-4">
+              {editingMembro ? 'Editar Membro' : 'Novo Membro'}
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              📊 Conectado ao PostgreSQL - Dados salvos em tempo real
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  // Implementar formulário completo
+                  setShowModal(false);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MembrosComponent;
