@@ -1,28 +1,29 @@
-// src/components/QuestionariosComponent.js
+// src/components/QuestionariosComponent.js - Gestão de Questionários EBD
 import React, { useState, useEffect } from 'react';
 import { 
-  HelpCircle, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Calendar,
-  FileText,
-  Users,
-  BarChart3,
+  HelpCircle,
   Search,
   Filter,
-  Save,
-  X,
-  Loader2,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  FileText,
+  Calendar,
+  BookOpen,
+  Users,
   CheckCircle,
   AlertCircle,
+  Loader2,
+  Download,
   Upload,
-  Download
+  Save,
+  X,
+  Clock,
+  Award
 } from 'lucide-react';
 
-// Import dos serviços
-import { ebdService } from '../lib/supabase';
+import { ebdService, arquivosService, utils } from '../lib/supabase';
 
 const QuestionariosComponent = ({ currentUser, showMessage }) => {
   // =============================================================================
@@ -30,56 +31,49 @@ const QuestionariosComponent = ({ currentUser, showMessage }) => {
   // =============================================================================
   const [questionarios, setQuestionarios] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filtros, setFiltros] = useState({
-    busca: '',
-    status: '',
-    ano: new Date().getFullYear()
-  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filtroAno, setFiltroAno] = useState(new Date().getFullYear());
+  const [filtroStatus, setFiltroStatus] = useState('todos');
   const [showModal, setShowModal] = useState(false);
-  const [modoEdicao, setModoEdicao] = useState(false);
-  const [questionarioSelecionado, setQuestionarioSelecionado] = useState(null);
+  const [editingQuestionario, setEditingQuestionario] = useState(null);
+  const [viewingQuestionario, setViewingQuestionario] = useState(null);
+  const [perguntas, setPerguntas] = useState([]);
   const [estatisticas, setEstatisticas] = useState({
-    total_questionarios: 0,
-    questionarios_ativos: 0,
-    total_participacoes: 0,
-    taxa_participacao: 0
-  });
-
-  // Formulário de questionário
-  const [formQuestionario, setFormQuestionario] = useState({
-    titulo: '',
-    subtitulo: '',
-    periodo: '',
-    ano: new Date().getFullYear(),
-    trimestre: 1,
-    data_inicio: '',
-    data_fim: '',
-    total_licoes: 12,
-    status: 'ativo'
+    total: 0,
+    ativos: 0,
+    pendentes: 0,
+    processados: 0
   });
 
   // =============================================================================
   // 🔄 CARREGAMENTO INICIAL
   // =============================================================================
-  
   useEffect(() => {
-    loadData();
-  }, []);
+    loadQuestionarios();
+  }, [searchTerm, filtroAno, filtroStatus]);
 
-  const loadData = async () => {
+  const loadQuestionarios = async () => {
     try {
       setLoading(true);
       
-      // Carregar questionários e estatísticas
-      const [questionariosData, estatisticasData] = await Promise.all([
-        ebdService.listarQuestionarios(filtros),
-        ebdService.estatisticas()
-      ]);
+      const filtros = {
+        ano: filtroAno !== 'todos' ? filtroAno : undefined,
+        status: filtroStatus !== 'todos' ? filtroStatus : undefined,
+        busca: searchTerm.trim() || undefined
+      };
+
+      const data = await ebdService.listarQuestionarios(filtros);
+      setQuestionarios(data);
       
-      setQuestionarios(questionariosData);
-      setEstatisticas(estatisticasData);
+      // Calcular estatísticas
+      const stats = {
+        total: data.length,
+        ativos: data.filter(q => q.status === 'ativo').length,
+        pendentes: data.filter(q => q.status === 'pendente').length,
+        processados: data.filter(q => q.status === 'processado').length
+      };
       
-      console.log(`✅ ${questionariosData.length} questionários carregados`);
+      setEstatisticas(stats);
       
     } catch (error) {
       console.error('Erro ao carregar questionários:', error);
@@ -89,656 +83,348 @@ const QuestionariosComponent = ({ currentUser, showMessage }) => {
     }
   };
 
-  // Aplicar filtros
-  const aplicarFiltros = () => {
-    loadData();
-  };
-
-  // Limpar filtros
-  const limparFiltros = () => {
-    setFiltros({
-      busca: '',
-      status: '',
-      ano: new Date().getFullYear()
-    });
-    setTimeout(() => loadData(), 100);
-  };
-
-  // =============================================================================
-  // 📝 CRUD DE QUESTIONÁRIOS
-  // =============================================================================
-  
-  const criarQuestionario = async () => {
+  const loadPerguntas = async (questionarioId) => {
     try {
-      if (!formQuestionario.titulo.trim()) {
-        showMessage('error', 'Digite o título do questionário');
-        return;
-      }
-
-      const novoQuestionario = await ebdService.criarQuestionario(
-        formQuestionario, 
-        currentUser?.id || 'demo-user-id'
-      );
-
-      setQuestionarios(prev => [novoQuestionario, ...prev]);
-      setShowModal(false);
-      resetForm();
-      showMessage('success', 'Questionário criado com sucesso!');
-      
-      // Atualizar estatísticas
-      loadData();
-
+      const perguntasData = await ebdService.buscarPerguntas(questionarioId);
+      setPerguntas(perguntasData);
     } catch (error) {
-      console.error('Erro ao criar questionário:', error);
-      showMessage('error', 'Erro ao criar questionário');
+      console.error('Erro ao carregar perguntas:', error);
+      showMessage('error', 'Erro ao carregar perguntas do questionário');
     }
-  };
-
-  const resetForm = () => {
-    setFormQuestionario({
-      titulo: '',
-      subtitulo: '',
-      periodo: '',
-      ano: new Date().getFullYear(),
-      trimestre: 1,
-      data_inicio: '',
-      data_fim: '',
-      total_licoes: 12,
-      status: 'ativo'
-    });
-    setQuestionarioSelecionado(null);
-    setModoEdicao(false);
   };
 
   // =============================================================================
   // 🎨 COMPONENTES DE INTERFACE
   // =============================================================================
   
-  // Barra de filtros
-  const BarraFiltros = () => (
-    <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Busca */}
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar questionários..."
-            value={filtros.busca}
-            onChange={(e) => setFiltros({...filtros, busca: e.target.value})}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+  // Cabeçalho com Estatísticas
+  const HeaderStats = () => (
+    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+            <HelpCircle className="mr-3 h-6 w-6" />
+            Questionários EBD
+          </h2>
+          <p className="text-gray-600">
+            Gestão de questionários da Escola Bíblica Dominical
+          </p>
         </div>
-
-        {/* Status */}
-        <select
-          value={filtros.status}
-          onChange={(e) => setFiltros({...filtros, status: e.target.value})}
-          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          <option value="">Todos os status</option>
-          <option value="ativo">Ativo</option>
-          <option value="inativo">Inativo</option>
-          <option value="pendente">Pendente</option>
-          <option value="concluido">Concluído</option>
-        </select>
-
-        {/* Ano */}
-        <select
-          value={filtros.ano}
-          onChange={(e) => setFiltros({...filtros, ano: parseInt(e.target.value)})}
-          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          <option value={2025}>2025</option>
-          <option value={2024}>2024</option>
-          <option value={2023}>2023</option>
-        </select>
-      </div>
-
-      {/* Botões de ação */}
-      <div className="flex justify-between items-center mt-4">
-        <div className="flex gap-2">
-          <button
-            onClick={aplicarFiltros}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Aplicar Filtros
-          </button>
-          <button
-            onClick={limparFiltros}
-            className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 flex items-center"
-          >
-            <X className="h-4 w-4 mr-2" />
-            Limpar
-          </button>
-        </div>
-        
         <button
           onClick={() => {
-            resetForm();
+            setEditingQuestionario(null);
             setShowModal(true);
           }}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           Novo Questionário
         </button>
       </div>
-    </div>
-  );
 
-  // Cards de estatísticas
-  const CardsEstatisticas = () => (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">Total Questionários</p>
-            <p className="text-2xl font-bold text-gray-800">{estatisticas.total_questionarios}</p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-blue-600">Total de Questionários</p>
+              <p className="text-2xl font-bold text-blue-900">{estatisticas.total}</p>
+            </div>
+            <BookOpen className="h-8 w-8 text-blue-600" />
           </div>
-          <HelpCircle className="h-8 w-8 text-blue-500" />
         </div>
-      </div>
 
-      <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-green-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">Questionários Ativos</p>
-            <p className="text-2xl font-bold text-gray-800">{estatisticas.questionarios_ativos}</p>
+        <div className="bg-green-50 p-4 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-green-600">Ativos</p>
+              <p className="text-2xl font-bold text-green-900">{estatisticas.ativos}</p>
+            </div>
+            <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
-          <CheckCircle className="h-8 w-8 text-green-500" />
         </div>
-      </div>
 
-      <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-purple-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">Total Participações</p>
-            <p className="text-2xl font-bold text-gray-800">{estatisticas.total_participacoes}</p>
+        <div className="bg-yellow-50 p-4 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-yellow-600">Pendentes</p>
+              <p className="text-2xl font-bold text-yellow-900">{estatisticas.pendentes}</p>
+            </div>
+            <Clock className="h-8 w-8 text-yellow-600" />
           </div>
-          <Users className="h-8 w-8 text-purple-500" />
         </div>
-      </div>
 
-      <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-yellow-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">Taxa Participação</p>
-            <p className="text-2xl font-bold text-gray-800">{estatisticas.taxa_participacao}%</p>
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-purple-600">Processados</p>
+              <p className="text-2xl font-bold text-purple-900">{estatisticas.processados}</p>
+            </div>
+            <Award className="h-8 w-8 text-purple-600" />
           </div>
-          <BarChart3 className="h-8 w-8 text-yellow-500" />
         </div>
       </div>
     </div>
   );
 
-  // Lista de questionários
-  const ListaQuestionarios = () => {
-    if (loading) {
-      return (
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin mr-3" />
-            <span>Carregando questionários...</span>
-          </div>
-        </div>
-      );
-    }
-
-    if (questionarios.length === 0) {
-      return (
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <HelpCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum questionário encontrado</h3>
-          <p className="text-gray-600 mb-4">
-            {filtros.busca ? 'Tente ajustar os filtros de busca' : 'Nenhum questionário cadastrado ainda'}
-          </p>
-          <button
-            onClick={() => {
-              resetForm();
-              setShowModal(true);
-            }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Criar Primeiro Questionário
-          </button>
-        </div>
-      );
+  // Barra de Filtros
+  const FilterBar = () => {
+    const anosDisponiveis = [];
+    const anoAtual = new Date().getFullYear();
+    for (let i = anoAtual; i >= anoAtual - 5; i--) {
+      anosDisponiveis.push(i);
     }
 
     return (
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="px-6 py-4 border-b bg-gray-50">
-          <h3 className="text-lg font-semibold">
-            Questionários EBD ({questionarios.length})
-          </h3>
-        </div>
-
-        <div className="divide-y divide-gray-200">
-          {questionarios.map(questionario => (
-            <div key={questionario.id} className="p-6 hover:bg-gray-50">
-              <div className="flex items-start justify-between">
-                {/* Informações do questionário */}
-                <div className="flex-1">
-                  <div className="flex items-center mb-2">
-                    <div className="h-10 w-10 bg-green-600 rounded-full flex items-center justify-center mr-3">
-                      <HelpCircle className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900">
-                        {questionario.titulo}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {questionario.subtitulo || 'Sem descrição'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-                    {/* Período */}
-                    <div className="space-y-1">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        <span>
-                          {questionario.periodo || `${questionario.ano || new Date().getFullYear()}`}
-                        </span>
-                      </div>
-                      {questionario.data_inicio && (
-                        <div className="flex items-center text-sm text-gray-600">
-                          <span className="ml-6">
-                            {new Date(questionario.data_inicio).toLocaleDateString('pt-BR')}
-                            {questionario.data_fim && 
-                              ` - ${new Date(questionario.data_fim).toLocaleDateString('pt-BR')}`
-                            }
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Lições */}
-                    <div className="space-y-1">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <FileText className="h-4 w-4 mr-2" />
-                        <span>{questionario.total_licoes || 0} lições</span>
-                      </div>
-                      {questionario.trimestre && (
-                        <div className="flex items-center text-sm text-gray-600">
-                          <span className="ml-6">{questionario.trimestre}º Trimestre</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Arquivo PDF */}
-                    <div className="space-y-1">
-                      {questionario.arquivos?.nome_original ? (
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Upload className="h-4 w-4 mr-2" />
-                          <span className="truncate">{questionario.arquivos.nome_original}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center text-sm text-gray-400">
-                          <Upload className="h-4 w-4 mr-2" />
-                          <span>Nenhum arquivo</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Data de criação */}
-                  <div className="mt-2 text-xs text-gray-500">
-                    Criado em: {new Date(questionario.created_at).toLocaleDateString('pt-BR')}
-                  </div>
-                </div>
-
-                {/* Ações e status */}
-                <div className="flex items-center space-x-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    questionario.status === 'ativo' 
-                      ? 'bg-green-100 text-green-800' 
-                      : questionario.status === 'inativo'
-                      ? 'bg-red-100 text-red-800'
-                      : questionario.status === 'pendente'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {questionario.status || 'pendente'}
-                  </span>
-
-                  <button
-                    onClick={() => {
-                      setQuestionarioSelecionado(questionario);
-                      setModoEdicao(false);
-                      setShowModal(true);
-                    }}
-                    className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
-                    title="Ver detalhes"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setQuestionarioSelecionado(questionario);
-                      setFormQuestionario({
-                        titulo: questionario.titulo,
-                        subtitulo: questionario.subtitulo || '',
-                        periodo: questionario.periodo || '',
-                        ano: questionario.ano || new Date().getFullYear(),
-                        trimestre: questionario.trimestre || 1,
-                        data_inicio: questionario.data_inicio || '',
-                        data_fim: questionario.data_fim || '',
-                        total_licoes: questionario.total_licoes || 12,
-                        status: questionario.status || 'ativo'
-                      });
-                      setModoEdicao(true);
-                      setShowModal(true);
-                    }}
-                    className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded"
-                    title="Editar"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      if (window.confirm(`Tem certeza que deseja excluir "${questionario.titulo}"?`)) {
-                        showMessage('info', 'Funcionalidade de exclusão em desenvolvimento');
-                      }
-                    }}
-                    className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-                    title="Excluir"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar questionários por título ou período..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
-          ))}
+          </div>
+          
+          <div className="flex gap-2">
+            <select
+              value={filtroAno}
+              onChange={(e) => setFiltroAno(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="todos">Todos os Anos</option>
+              {anosDisponiveis.map(ano => (
+                <option key={ano} value={ano}>{ano}</option>
+              ))}
+            </select>
+
+            <select
+              value={filtroStatus}
+              onChange={(e) => setFiltroStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="todos">Todos os Status</option>
+              <option value="ativo">Ativo</option>
+              <option value="pendente">Pendente</option>
+              <option value="processado">Processado</option>
+              <option value="inativo">Inativo</option>
+            </select>
+            
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setFiltroAno(new Date().getFullYear());
+                setFiltroStatus('todos');
+              }}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              <Filter className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     );
   };
 
-  // Modal de criação/edição/visualização
-  const ModalQuestionario = () => {
-    if (!showModal) return null;
+  // Card de Questionário
+  const QuestionarioCard = ({ questionario }) => (
+    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-gray-900">
+            {questionario.titulo}
+          </h3>
+          {questionario.subtitulo && (
+            <p className="text-gray-600 mt-1">{questionario.subtitulo}</p>
+          )}
+          
+          <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
+            {questionario.periodo && (
+              <span className="flex items-center">
+                <Calendar className="h-4 w-4 mr-1" />
+                {questionario.periodo}
+              </span>
+            )}
+            {questionario.total_licoes && (
+              <span className="flex items-center">
+                <BookOpen className="h-4 w-4 mr-1" />
+                {questionario.total_licoes} lições
+              </span>
+            )}
+            {questionario.ano && (
+              <span className="flex items-center">
+                <Clock className="h-4 w-4 mr-1" />
+                Ano {questionario.ano}
+              </span>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex flex-col items-end">
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+            questionario.status === 'ativo' 
+              ? 'bg-green-100 text-green-800' 
+              : questionario.status === 'processado'
+              ? 'bg-blue-100 text-blue-800'
+              : questionario.status === 'pendente'
+              ? 'bg-yellow-100 text-yellow-800'
+              : 'bg-gray-100 text-gray-800'
+          }`}>
+            {questionario.status || 'pendente'}
+          </span>
+        </div>
+      </div>
 
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      if (modoEdicao && questionarioSelecionado) {
-        // TODO: Implementar edição
-        showMessage('info', 'Funcionalidade de edição em desenvolvimento');
-      } else {
-        criarQuestionario();
-      }
-    };
+      {/* Informações do período */}
+      {(questionario.data_inicio || questionario.data_fim) && (
+        <div className="mb-4 p-3 bg-gray-50 rounded text-sm">
+          <p className="text-gray-700">
+            <strong>Período:</strong> 
+            {questionario.data_inicio && ` ${utils.formatDate(questionario.data_inicio)}`}
+            {questionario.data_fim && ` até ${utils.formatDate(questionario.data_fim)}`}
+          </p>
+        </div>
+      )}
+
+      {/* Arquivo PDF associado */}
+      {questionario.arquivos && (
+        <div className="mb-4 p-3 bg-blue-50 rounded text-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <FileText className="h-4 w-4 mr-2 text-blue-600" />
+              <span className="text-blue-800">
+                <strong>Arquivo:</strong> {questionario.arquivos.nome_original}
+              </span>
+            </div>
+            <span className="text-xs text-blue-600">
+              {Math.round(questionario.arquivos.tamanho_bytes / 1024)} KB
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center pt-4 border-t">
+        <span className="text-xs text-gray-500">
+          Criado em {utils.formatDate(questionario.created_at)}
+        </span>
+        
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setViewingQuestionario(questionario);
+              loadPerguntas(questionario.id);
+            }}
+            className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+            title="Visualizar perguntas"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => {
+              setEditingQuestionario(questionario);
+              setShowModal(true);
+            }}
+            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded"
+            title="Editar"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleExportQuestionario(questionario)}
+            className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded"
+            title="Exportar"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleDeleteQuestionario(questionario)}
+            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+            title="Excluir"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Modal de Visualização de Perguntas
+  const ViewModal = () => {
+    if (!viewingQuestionario) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-96 overflow-y-auto">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold">
-                {modoEdicao ? 'Editar Questionário' : 
-                 questionarioSelecionado ? 'Detalhes do Questionário' : 
-                 'Novo Questionário EBD'}
-              </h3>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
+          <div className="p-6 border-b">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {viewingQuestionario.titulo}
+                </h3>
+                <p className="text-gray-600 mt-1">
+                  {viewingQuestionario.subtitulo || 'Visualização de perguntas'}
+                </p>
+              </div>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setViewingQuestionario(null);
+                  setPerguntas([]);
+                }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
+          </div>
 
-            {questionarioSelecionado && !modoEdicao ? (
-              // Modo visualização
-              <div className="space-y-6">
-                <div className="text-center">
-                  <div className="h-16 w-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <HelpCircle className="h-8 w-8 text-white" />
-                  </div>
-                  <h4 className="text-2xl font-bold">{questionarioSelecionado.titulo}</h4>
-                  <p className="text-gray-600">{questionarioSelecionado.subtitulo}</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h5 className="font-semibold mb-3">Informações Gerais</h5>
-                    <div className="space-y-2 text-sm">
-                      <p><strong>Período:</strong> {questionarioSelecionado.periodo || 'Não definido'}</p>
-                      <p><strong>Ano:</strong> {questionarioSelecionado.ano}</p>
-                      <p><strong>Trimestre:</strong> {questionarioSelecionado.trimestre}º</p>
-                      <p><strong>Total de Lições:</strong> {questionarioSelecionado.total_licoes}</p>
-                      <p><strong>Status:</strong> 
-                        <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                          questionarioSelecionado.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {questionarioSelecionado.status}
+          <div className="p-6 overflow-y-auto max-h-[70vh]">
+            {perguntas.length > 0 ? (
+              <div className="space-y-4">
+                {perguntas.map((pergunta, index) => (
+                  <div key={pergunta.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-sm font-medium text-blue-600">
+                        Lição {pergunta.numero_licao} - Pergunta {pergunta.numero_pergunta}
+                      </span>
+                      {pergunta.categoria && (
+                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                          {pergunta.categoria}
                         </span>
-                      </p>
+                      )}
                     </div>
+                    
+                    <p className="text-gray-900 mb-3">{pergunta.texto_pergunta}</p>
+                    
+                    {pergunta.perguntas_respostas && pergunta.perguntas_respostas.length > 0 && (
+                      <div className="bg-green-50 p-3 rounded border-l-4 border-green-400">
+                        <p className="text-sm font-medium text-green-800 mb-1">Resposta:</p>
+                        <p className="text-sm text-green-700">
+                          {pergunta.perguntas_respostas[0].texto_resposta}
+                        </p>
+                        {pergunta.perguntas_respostas[0].versiculo_referencia && (
+                          <p className="text-xs text-green-600 mt-1 italic">
+                            Referência: {pergunta.perguntas_respostas[0].versiculo_referencia}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
-
-                  <div>
-                    <h5 className="font-semibold mb-3">Datas e Arquivo</h5>
-                    <div className="space-y-2 text-sm">
-                      <p><strong>Data Início:</strong> {
-                        questionarioSelecionado.data_inicio 
-                          ? new Date(questionarioSelecionado.data_inicio).toLocaleDateString('pt-BR')
-                          : 'Não definida'
-                      }</p>
-                      <p><strong>Data Fim:</strong> {
-                        questionarioSelecionado.data_fim 
-                          ? new Date(questionarioSelecionado.data_fim).toLocaleDateString('pt-BR')
-                          : 'Não definida'
-                      }</p>
-                      <p><strong>Arquivo PDF:</strong> {
-                        questionarioSelecionado.arquivos?.nome_original || 'Nenhum arquivo'
-                      }</p>
-                      <p><strong>Criado em:</strong> {
-                        new Date(questionarioSelecionado.created_at).toLocaleDateString('pt-BR')
-                      }</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
-                    <span className="text-sm text-yellow-800">
-                      <strong>Sistema em Desenvolvimento:</strong> Funcionalidades de perguntas, respostas e participações serão implementadas em breve.
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-2 pt-4">
-                  <button
-                    onClick={() => {
-                      setFormQuestionario({
-                        titulo: questionarioSelecionado.titulo,
-                        subtitulo: questionarioSelecionado.subtitulo || '',
-                        periodo: questionarioSelecionado.periodo || '',
-                        ano: questionarioSelecionado.ano || new Date().getFullYear(),
-                        trimestre: questionarioSelecionado.trimestre || 1,
-                        data_inicio: questionarioSelecionado.data_inicio || '',
-                        data_fim: questionarioSelecionado.data_fim || '',
-                        total_licoes: questionarioSelecionado.total_licoes || 12,
-                        status: questionarioSelecionado.status || 'ativo'
-                      });
-                      setModoEdicao(true);
-                    }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
-                  >
-                    Fechar
-                  </button>
-                </div>
+                ))}
               </div>
             ) : (
-              // Modo criação/edição
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Título */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Título do Questionário *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formQuestionario.titulo}
-                      onChange={(e) => setFormQuestionario({...formQuestionario, titulo: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ex: Avaliação EBD - 1º Trimestre 2025"
-                    />
-                  </div>
-
-                  {/* Subtítulo */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Descrição/Subtítulo
-                    </label>
-                    <textarea
-                      value={formQuestionario.subtitulo}
-                      onChange={(e) => setFormQuestionario({...formQuestionario, subtitulo: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows="3"
-                      placeholder="Descreva o objetivo e conteúdo do questionário..."
-                    />
-                  </div>
-
-                  {/* Período */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Período
-                    </label>
-                    <input
-                      type="text"
-                      value={formQuestionario.periodo}
-                      onChange={(e) => setFormQuestionario({...formQuestionario, periodo: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ex: 1º Trimestre 2025"
-                    />
-                  </div>
-
-                  {/* Ano */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Ano *
-                    </label>
-                    <select
-                      required
-                      value={formQuestionario.ano}
-                      onChange={(e) => setFormQuestionario({...formQuestionario, ano: parseInt(e.target.value)})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value={2025}>2025</option>
-                      <option value={2024}>2024</option>
-                      <option value={2026}>2026</option>
-                    </select>
-                  </div>
-
-                  {/* Trimestre */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Trimestre
-                    </label>
-                    <select
-                      value={formQuestionario.trimestre}
-                      onChange={(e) => setFormQuestionario({...formQuestionario, trimestre: parseInt(e.target.value)})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value={1}>1º Trimestre</option>
-                      <option value={2}>2º Trimestre</option>
-                      <option value={3}>3º Trimestre</option>
-                      <option value={4}>4º Trimestre</option>
-                    </select>
-                  </div>
-
-                  {/* Total de Lições */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Total de Lições
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="52"
-                      value={formQuestionario.total_licoes}
-                      onChange={(e) => setFormQuestionario({...formQuestionario, total_licoes: parseInt(e.target.value)})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  {/* Data Início */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Data de Início
-                    </label>
-                    <input
-                      type="date"
-                      value={formQuestionario.data_inicio}
-                      onChange={(e) => setFormQuestionario({...formQuestionario, data_inicio: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  {/* Data Fim */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Data de Término
-                    </label>
-                    <input
-                      type="date"
-                      value={formQuestionario.data_fim}
-                      onChange={(e) => setFormQuestionario({...formQuestionario, data_fim: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  {/* Status */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Status
-                    </label>
-                    <select
-                      value={formQuestionario.status}
-                      onChange={(e) => setFormQuestionario({...formQuestionario, status: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="ativo">Ativo</option>
-                      <option value="inativo">Inativo</option>
-                      <option value="pendente">Pendente</option>
-                      <option value="concluido">Concluído</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Botões de ação */}
-                <div className="flex justify-end space-x-3 pt-6 border-t">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 flex items-center"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {modoEdicao ? 'Salvar Alterações' : 'Criar Questionário'}
-                  </button>
-                </div>
-              </form>
+              <div className="text-center py-12">
+                <HelpCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Nenhuma pergunta encontrada
+                </h3>
+                <p className="text-gray-600">
+                  Este questionário ainda não possui perguntas cadastradas.
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -747,33 +433,115 @@ const QuestionariosComponent = ({ currentUser, showMessage }) => {
   };
 
   // =============================================================================
-  // 🎨 RENDER PRINCIPAL
+  // 🔧 FUNÇÕES DE AÇÃO
   // =============================================================================
   
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white p-6 rounded-lg">
-        <h2 className="text-2xl font-bold mb-2">📚 Questionários EBD</h2>
-        <p className="opacity-90">
-          Gestão completa dos questionários da Escola Bíblica Dominical
-        </p>
-        <div className="mt-2 text-sm opacity-75">
-          Sistema conectado ao PostgreSQL - {currentUser?.igreja}
+  const handleExportQuestionario = async (questionario) => {
+    try {
+      showMessage('info', 'Funcionalidade de exportação será implementada em breve');
+    } catch (error) {
+      console.error('Erro ao exportar:', error);
+      showMessage('error', 'Erro ao exportar questionário');
+    }
+  };
+
+  const handleDeleteQuestionario = async (questionario) => {
+    if (!window.confirm(`Tem certeza que deseja excluir "${questionario.titulo}"?`)) {
+      return;
+    }
+
+    try {
+      showMessage('info', 'Funcionalidade de exclusão será implementada em breve');
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+      showMessage('error', 'Erro ao excluir questionário');
+    }
+  };
+
+  // =============================================================================
+  // 🏗️ RENDER PRINCIPAL
+  // =============================================================================
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Carregando questionários...</p>
         </div>
       </div>
+    );
+  }
 
-      {/* Cards de estatísticas */}
-      <CardsEstatisticas />
+  return (
+    <div className="space-y-6">
+      <HeaderStats />
+      <FilterBar />
+      
+      {/* Lista de Questionários */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {questionarios.map(questionario => (
+          <QuestionarioCard key={questionario.id} questionario={questionario} />
+        ))}
+      </div>
 
-      {/* Barra de filtros */}
-      <BarraFiltros />
+      {questionarios.length === 0 && (
+        <div className="text-center py-12">
+          <HelpCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Nenhum questionário encontrado
+          </h3>
+          <p className="text-gray-600 mb-4">
+            {searchTerm || filtroStatus !== 'todos' || filtroAno !== 'todos'
+              ? 'Tente ajustar os filtros de busca'
+              : 'Comece criando o primeiro questionário EBD'}
+          </p>
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+          >
+            Criar Primeiro Questionário
+          </button>
+        </div>
+      )}
 
-      {/* Lista de questionários */}
-      <ListaQuestionarios />
+      {/* Modal de Visualização */}
+      <ViewModal />
 
-      {/* Modal */}
-      <ModalQuestionario />
+      {/* Modal de Edição (placeholder) */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h3 className="text-lg font-semibold mb-4">
+              {editingQuestionario ? 'Editar Questionário' : 'Novo Questionário'}
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              📊 Formulário completo será implementado na próxima versão
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingQuestionario(null);
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingQuestionario(null);
+                  showMessage('info', 'Formulário será implementado em breve');
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
