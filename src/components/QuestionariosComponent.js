@@ -11,19 +11,15 @@ import {
   FileText,
   Calendar,
   BookOpen,
-  Users,
   CheckCircle,
-  AlertCircle,
   Loader2,
   Download,
-  Upload,
-  Save,
   X,
   Clock,
   Award
 } from 'lucide-react';
 
-import { ebdService, arquivosService, utils } from '../lib/supabase';
+import { ebdService, utils } from '../lib/supabase';
 
 const QuestionariosComponent = ({ currentUser, showMessage }) => {
   // =============================================================================
@@ -48,10 +44,6 @@ const QuestionariosComponent = ({ currentUser, showMessage }) => {
   // =============================================================================
   // 🔄 CARREGAMENTO INICIAL
   // =============================================================================
-  useEffect(() => {
-    loadQuestionarios();
-  }, [searchTerm, filtroAno, filtroStatus]);
-
   const loadQuestionarios = async () => {
     try {
       setLoading(true);
@@ -92,6 +84,10 @@ const QuestionariosComponent = ({ currentUser, showMessage }) => {
       showMessage('error', 'Erro ao carregar perguntas do questionário');
     }
   };
+
+  useEffect(() => {
+    loadQuestionarios();
+  }, [searchTerm, filtroAno, filtroStatus]);
 
   // =============================================================================
   // 🎨 COMPONENTES DE INTERFACE
