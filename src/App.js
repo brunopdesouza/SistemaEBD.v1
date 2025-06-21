@@ -1,4 +1,4 @@
-// src/App.js - Versão Final Integrada ao PostgreSQL
+// src/App.js - Versão Final Integrada ao PostgreSQL/Supabase
 import React, { useState, useEffect } from 'react';
 import { 
   Users, 
@@ -29,13 +29,7 @@ import {
   Database
 } from 'lucide-react';
 
-// Imports dos componentes
-import ImportMembersComponent from './components/ImportMembersComponent';
-import AutomationComponent from './components/AutomationComponent';
-import MembrosComponent from './components/MembrosComponent';
-import QuestionariosComponent from './components/QuestionariosComponent';
-
-// Import dos serviços Supabase otimizados
+// Import dos serviços Supabase
 import { 
   authService, 
   membrosService, 
@@ -44,6 +38,12 @@ import {
   estatisticasService,
   useSupabaseData 
 } from './lib/supabase';
+
+// Imports dos componentes
+import MembrosComponent from './components/MembrosComponent';
+import QuestionariosComponent from './components/QuestionariosComponent';
+import ImportMembersComponent from './components/ImportMembersComponent';
+import AutomationComponent from './components/AutomationComponent';
 
 function App() {
   // =============================================================================
@@ -215,7 +215,7 @@ function App() {
               {connectionStatus === 'error' && (
                 <div className="flex items-center text-xs text-yellow-600">
                   <AlertCircle className="w-3 h-3 mr-1" />
-                  Modo Offline
+                  Usando dados locais
                 </div>
               )}
             </div>
@@ -320,7 +320,7 @@ function App() {
           <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
             <strong>Acesso Demo:</strong> admin@sistema.com / admin123
             <br />
-            <strong>Banco:</strong> PostgreSQL com {estatisticas.total_membros} membros reais
+            <strong>Banco:</strong> PostgreSQL {connectionStatus === 'connected' ? 'Online' : 'Offline'}
           </div>
         </div>
       </div>
@@ -360,7 +360,7 @@ function App() {
             </span>
             <span className="flex items-center bg-white/10 px-3 py-1 rounded-full">
               <Database className="w-4 h-4 mr-1" />
-              PostgreSQL Online
+              {connectionStatus === 'connected' ? 'PostgreSQL Online' : 'Modo Offline'}
             </span>
           </div>
         </div>
@@ -520,12 +520,18 @@ function App() {
         <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-green-500">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="h-3 w-3 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-              <span className="text-sm font-medium text-gray-700">Sistema Conectado ao PostgreSQL Supabase</span>
+              <div className={`h-3 w-3 rounded-full mr-2 ${
+                connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'
+              }`}></div>
+              <span className="text-sm font-medium text-gray-700">
+                {connectionStatus === 'connected' 
+                  ? 'Sistema Conectado ao PostgreSQL Supabase' 
+                  : 'Sistema em Modo Offline'}
+              </span>
             </div>
             <div className="text-xs text-gray-500">
               {estatisticas.total_logs > 0 && `${estatisticas.total_logs} logs registrados`}
-              <span className="ml-2">| Tempo Real</span>
+              <span className="ml-2">| {connectionStatus === 'connected' ? 'Tempo Real' : 'Cache Local'}</span>
             </div>
           </div>
         </div>
@@ -546,10 +552,12 @@ function App() {
       {children || (
         <>
           <p className="text-gray-600 mb-4">
-            Esta funcionalidade está conectada ao banco PostgreSQL e pronta para desenvolvimento.
+            Esta funcionalidade está {connectionStatus === 'connected' ? 'conectada ao banco PostgreSQL' : 'preparada para desenvolvimento'} e pronta para uso.
           </p>
           <div className="mt-4 p-3 bg-blue-50 rounded text-sm text-blue-600">
-            💡 <strong>Sistema Real:</strong> Conectado ao Supabase com {estatisticas.total_membros} membros
+            💡 <strong>Sistema Real:</strong> {connectionStatus === 'connected' 
+              ? `Conectado ao Supabase com ${estatisticas.total_membros} membros`
+              : 'Usando dados de exemplo'}
           </div>
         </>
       )}
@@ -695,11 +703,11 @@ function App() {
       case 'membros':
         return <MembrosComponent currentUser={currentUser} showMessage={showMessage} />;
       case 'import-membros':
-        return <ImportMembersComponent />;
+        return <ImportMembersComponent currentUser={currentUser} showMessage={showMessage} />;
       case 'questionarios':
         return <QuestionariosComponent currentUser={currentUser} showMessage={showMessage} />;
       case 'automacao':
-        return <AutomationComponent />;
+        return <AutomationComponent currentUser={currentUser} showMessage={showMessage} />;
       case 'upload':
         return <SimpleComponent title="Gestão de Arquivos" icon={Upload} />;
       case 'pdf':
