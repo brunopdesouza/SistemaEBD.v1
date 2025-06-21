@@ -8,16 +8,14 @@ import {
   AlertCircle,
   X,
   Download,
-  Eye,
   Loader2,
   FileSpreadsheet,
   Database,
-  ArrowRight,
   AlertTriangle,
   Check
 } from 'lucide-react';
 
-import { membrosService, arquivosService, utils } from '../lib/supabase';
+import { arquivosService, utils } from '../lib/supabase';
 
 const ImportMembersComponent = ({ currentUser, showMessage }) => {
   // =============================================================================
@@ -110,6 +108,8 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
         'importacao_membros',
         currentUser.id
       );
+
+      console.log('Arquivo enviado:', uploadedFile.id);
 
       clearInterval(progressInterval);
       setUploadProgress(100);
@@ -228,6 +228,7 @@ const ImportMembersComponent = ({ currentUser, showMessage }) => {
             };
 
             // Simular criação do membro
+            console.log('Dados do membro:', membroData);
             // await membrosService.criar(membroData, currentUser.id);
             
             results.details.push({
