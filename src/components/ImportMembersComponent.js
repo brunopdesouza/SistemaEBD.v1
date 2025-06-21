@@ -1,605 +1,602 @@
 // src/components/ImportMembersComponent.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Upload, 
+  FileText, 
   Users, 
   CheckCircle, 
   AlertCircle, 
-  FileSpreadsheet, 
-  Eye, 
-  UserPlus, 
-  Info, 
-  RefreshCw, 
-  Zap,
-  FileText,
+  X, 
+  Download,
+  Database,
+  Loader2,
+  FileSpreadsheet,
   Check
 } from 'lucide-react';
-import { dataService } from '../lib/supabase';
 
-const ImportMembersComponent = () => {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [importData, setImportData] = useState([]);
-  const [currentStep, setCurrentStep] = useState('upload'); // upload, preview, importing, completed
-  const [detectedPattern, setDetectedPattern] = useState(null);
-  const [importStats, setImportStats] = useState({});
+// Import dos serviços reais do Supabase
+import { membrosService, organizacaoService, supabase } from '../lib/supabase';
+
+const ImportMembersComponent = ({ currentUser, showMessage }) => {
+  // =============================================================================
+  // 🎯 ESTADOS PRINCIPAIS - SEM DADOS MOCKADOS
+  // =============================================================================
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [step, setStep] = useState(1);
+  const [file, setFile] = useState(null);
+  const [dados, setDados] = useState([]);
+  const [dadosValidados, setDadosValidados] = useState([]);
+  const [igrejas, setIgrejas] = useState([]);
+  const [grupos, setGrupos] = useState([]);
+  const [estatisticas, setEstatisticas] = useState({
+    total_membros: 0,
+    importados_hoje: 0,
+    ultima_importacao: null
+  });
 
-  // Dados reais da Nova Brasília I baseados na planilha
-  const novaBrasiliaMembers = [
-    {
-      nome: "WALACE CARDOSO DE ANDRADE",
-      telefone: "(27) 99999-0001",
-      funcao: "Responsável do Grupo",
-      idade: 45,
-      classificacao: "Adulto",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "MARIA SILVA SANTOS",
-      telefone: "(27) 99999-0002", 
-      funcao: "Secretária do Grupo",
-      idade: 42,
-      classificacao: "Adulto",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "JOÃO PEDRO OLIVEIRA",
-      telefone: "(27) 99999-0003",
-      funcao: "Membro",
-      idade: 28,
-      classificacao: "Jovem",
-      grupo: "Grupo 2 - WALACE", 
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "ANA CAROLINA FERREIRA",
-      telefone: "(27) 99999-0004",
-      funcao: "Professora",
-      idade: 35,
-      classificacao: "Adulto",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I", 
-      ativo: true
-    },
-    {
-      nome: "CARLOS EDUARDO LIMA",
-      telefone: "(27) 99999-0005",
-      funcao: "Diácono",
-      idade: 52,
-      classificacao: "Adulto",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "LETICIA SOUZA COSTA",
-      telefone: "(27) 99999-0006",
-      funcao: "Membro",
-      idade: 19,
-      classificacao: "Jovem",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "ROBERTO ALVES SANTOS",
-      telefone: "(27) 99999-0007",
-      funcao: "Obreiro",
-      idade: 48,
-      classificacao: "Adulto",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "FERNANDA LIMA PEREIRA",
-      telefone: "(27) 99999-0008",
-      funcao: "Membro",
-      idade: 31,
-      classificacao: "Adulto",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "GABRIEL HENRIQUE SILVA",
-      telefone: "(27) 99999-0009",
-      funcao: "Membro",
-      idade: 17,
-      classificacao: "Jovem",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "PATRICIA MOREIRA DIAS",
-      telefone: "(27) 99999-0010",
-      funcao: "Líder de Grupo",
-      idade: 39,
-      classificacao: "Adulto",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "MARCOS ANTONIO CRUZ",
-      telefone: "(27) 99999-0011",
-      funcao: "Membro",
-      idade: 55,
-      classificacao: "Adulto",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "JULIANA CASTRO ROCHA",
-      telefone: "(27) 99999-0012",
-      funcao: "Membro",
-      idade: 26,
-      classificacao: "Jovem",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "PEDRO LUCAS MARTINS",
-      telefone: "(27) 99999-0013",
-      funcao: "Membro",
-      idade: 12,
-      classificacao: "Criança",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "SANDRA REGINA ALMEIDA",
-      telefone: "(27) 99999-0014",
-      funcao: "Professora",
-      idade: 44,
-      classificacao: "Adulto",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "DIEGO FERNANDO COSTA",
-      telefone: "(27) 99999-0015",
-      funcao: "Membro",
-      idade: 29,
-      classificacao: "Jovem",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    },
-    {
-      nome: "CLARA BEATRIZ SANTOS",
-      telefone: "(27) 99999-0016",
-      funcao: "Membro",
-      idade: 9,
-      classificacao: "Criança",
-      grupo: "Grupo 2 - WALACE",
-      igreja: "Nova Brasília I",
-      ativo: true
-    }
-  ];
+  // =============================================================================
+  // 🔄 CARREGAMENTO DE DADOS REAIS
+  // =============================================================================
+  
+  useEffect(() => {
+    loadInitialData();
+  }, []);
 
-  // Padrões de importação
-  const importPatterns = {
-    'lista_participantes': {
-      name: 'Lista de Participantes',
-      description: 'Lista oficial de participantes do grupo',
-      icon: '📊',
-      color: 'blue',
-      data: novaBrasiliaMembers
-    },
-    'cadastro_completo': {
-      name: 'Cadastro Completo',
-      description: 'Dados completos dos membros',
-      icon: '📋',
-      color: 'green',
-      data: novaBrasiliaMembers.map(m => ({
-        ...m,
-        endereco: `Rua ${Math.floor(Math.random() * 1000)}, Nova Brasília`,
-        email: `${m.nome.toLowerCase().replace(/\s/g, '.')}@email.com`,
-        data_nascimento: `${1980 + Math.floor(Math.random() * 30)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`
-      }))
-    },
-    'importacao_simples': {
-      name: 'Importação Simples',
-      description: 'Dados básicos para importação rápida',
-      icon: '⚡',
-      color: 'yellow',
-      data: novaBrasiliaMembers.map(m => ({
-        nome: m.nome,
-        telefone: m.telefone,
-        igreja: m.igreja,
-        grupo: m.grupo
-      }))
-    },
-    'padrao_geral': {
-      name: 'Padrão Geral',
-      description: 'Mix de dados diversos',
-      icon: '🔄',
-      color: 'purple',
-      data: novaBrasiliaMembers
-    }
-  };
-
-  const showMessage = (type, text) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
-  };
-
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      // Simular processamento e detecção de padrão
-      setTimeout(() => {
-        detectPattern(file);
-      }, 1000);
-    }
-  };
-
-  const detectPattern = (file) => {
-    setLoading(true);
-    
-    // Simular detecção baseada no nome do arquivo
-    let pattern = 'lista_participantes';
-    
-    if (file.name.toLowerCase().includes('cadastro')) {
-      pattern = 'cadastro_completo';
-    } else if (file.name.toLowerCase().includes('simples')) {
-      pattern = 'importacao_simples';
-    } else if (file.name.toLowerCase().includes('geral')) {
-      pattern = 'padrao_geral';
-    }
-
-    setTimeout(() => {
-      setDetectedPattern(pattern);
-      setImportData(importPatterns[pattern].data);
-      setImportStats({
-        total: importPatterns[pattern].data.length,
-        adultos: importPatterns[pattern].data.filter(m => m.classificacao === 'Adulto').length,
-        jovens: importPatterns[pattern].data.filter(m => m.classificacao === 'Jovem').length,
-        criancas: importPatterns[pattern].data.filter(m => m.classificacao === 'Criança').length,
-        responsavel: importPatterns[pattern].data.find(m => m.funcao === 'Responsável do Grupo')?.nome || 'WALACE CARDOSO DE ANDRADE'
-      });
-      setCurrentStep('preview');
-      setLoading(false);
-      showMessage('success', `Padrão "${importPatterns[pattern].name}" detectado automaticamente!`);
-    }, 2000);
-  };
-
-  const handleImport = async () => {
-    setCurrentStep('importing');
-    setLoading(true);
-
+  const loadInitialData = async () => {
     try {
-      // Tentar importar para o Supabase
-      await dataService.bulkInsertMembers(importData);
-      showMessage('success', 'Membros importados com sucesso para o Supabase!');
+      setLoading(true);
+      console.log('📥 Carregando dados para importação...');
+
+      // Carregar igrejas e grupos reais
+      const [igrejasData, gruposData] = await Promise.all([
+        organizacaoService.listarIgrejas(),
+        organizacaoService.listarGrupos()
+      ]);
+
+      setIgrejas(igrejasData);
+      setGrupos(gruposData);
+
+      // Buscar estatísticas de membros
+      const { data: membrosCount, error: countError } = await supabase
+        .from('membros')
+        .select('*', { count: 'exact' });
+
+      if (!countError) {
+        setEstatisticas(prev => ({
+          ...prev,
+          total_membros: membrosCount?.length || 0
+        }));
+      }
+
+      // Buscar última importação dos logs
+      const { data: ultimaImportacao } = await supabase
+        .from('logs_sistema')
+        .select('timestamp')
+        .eq('tipo_operacao', 'IMPORTACAO_MEMBROS')
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (ultimaImportacao) {
+        setEstatisticas(prev => ({
+          ...prev,
+          ultima_importacao: ultimaImportacao.timestamp
+        }));
+      }
+
+      console.log(`✅ ${igrejasData.length} igrejas e ${gruposData.length} grupos carregados`);
+
     } catch (error) {
-      console.error('Erro na importação:', error);
-      showMessage('warning', 'Dados salvos localmente (Supabase indisponível)');
-    }
-
-    setTimeout(() => {
-      setCurrentStep('completed');
+      console.error('❌ Erro ao carregar dados iniciais:', error);
+      showMessage?.('error', 'Erro ao carregar dados para importação');
+    } finally {
       setLoading(false);
-    }, 3000);
-  };
-
-  const resetImport = () => {
-    setCurrentStep('upload');
-    setSelectedFile(null);
-    setImportData([]);
-    setDetectedPattern(null);
-    setImportStats({});
-    setMessage({ type: '', text: '' });
-  };
-
-  const getClassificationColor = (classificacao) => {
-    switch (classificacao) {
-      case 'Adulto': return 'bg-blue-100 text-blue-800';
-      case 'Jovem': return 'bg-green-100 text-green-800';
-      case 'Criança': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center justify-center gap-2">
-          <Upload className="h-8 w-8 text-blue-600" />
-          Importar Membros - Nova Brasília I
-        </h1>
-        <p className="text-gray-600 mt-2">Sistema inteligente de importação com detecção automática de padrões</p>
+  // =============================================================================
+  // 🛠️ FUNÇÕES DE IMPORTAÇÃO
+  // =============================================================================
+
+  const handleFileUpload = (event) => {
+    const uploadedFile = event.target.files[0];
+    if (!uploadedFile) return;
+
+    setFile(uploadedFile);
+    processFile(uploadedFile);
+  };
+
+  const processFile = async (file) => {
+    try {
+      setLoading(true);
+      console.log('📄 Processando arquivo:', file.name);
+
+      const text = await file.text();
+      
+      // Processar CSV
+      if (file.name.endsWith('.csv')) {
+        const lines = text.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        
+        const processedData = lines.slice(1)
+          .filter(line => line.trim())
+          .map((line, index) => {
+            const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+            const item = { id: index + 1 };
+            
+            headers.forEach((header, i) => {
+              item[header] = values[i] || '';
+            });
+            
+            return item;
+          });
+
+        setDados(processedData);
+        console.log(`✅ ${processedData.length} registros processados do CSV`);
+      }
+      
+      // Processar JSON
+      else if (file.name.endsWith('.json')) {
+        const jsonData = JSON.parse(text);
+        const processedData = Array.isArray(jsonData) ? jsonData : [jsonData];
+        setDados(processedData);
+        console.log(`✅ ${processedData.length} registros processados do JSON`);
+      }
+      
+      else {
+        throw new Error('Formato de arquivo não suportado');
+      }
+
+      setStep(2);
+      
+    } catch (error) {
+      console.error('❌ Erro ao processar arquivo:', error);
+      showMessage?.('error', `Erro ao processar arquivo: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const validarDados = async () => {
+    try {
+      setLoading(true);
+      console.log('🔍 Validando dados para importação...');
+
+      const dadosValidos = dados.map(item => {
+        const errors = [];
+        
+        // Validações obrigatórias
+        if (!item.nome_completo && !item.nome) {
+          errors.push('Nome é obrigatório');
+        }
+        
+        if (item.email && !/\S+@\S+\.\S+/.test(item.email)) {
+          errors.push('Email inválido');
+        }
+
+        // Mapear campos para estrutura do banco
+        return {
+          ...item,
+          nome_completo: item.nome_completo || item.nome || '',
+          email: item.email || null,
+          celular: item.celular || item.telefone || null,
+          igreja_id: currentUser?.igreja_id || null,
+          grupo_id: currentUser?.grupo_id || null,
+          situacao: 'ativo',
+          errors: errors,
+          valid: errors.length === 0
+        };
+      });
+
+      setDadosValidados(dadosValidos);
+      setStep(3);
+      
+      const validCount = dadosValidos.filter(d => d.valid).length;
+      const invalidCount = dadosValidos.length - validCount;
+      
+      console.log(`✅ Validação concluída: ${validCount} válidos, ${invalidCount} com erro`);
+      
+      if (invalidCount > 0) {
+        showMessage?.('warning', `${invalidCount} registros com problemas encontrados`);
+      }
+
+    } catch (error) {
+      console.error('❌ Erro na validação:', error);
+      showMessage?.('error', 'Erro ao validar dados');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const importarMembros = async () => {
+    try {
+      setLoading(true);
+      console.log('💾 Iniciando importação para PostgreSQL...');
+
+      const dadosParaImportar = dadosValidados.filter(d => d.valid);
+      
+      if (dadosParaImportar.length === 0) {
+        throw new Error('Nenhum dado válido para importar');
+      }
+
+      // Preparar dados para inserção
+      const membrosParaInserir = dadosParaImportar.map(item => ({
+        nome_completo: item.nome_completo,
+        email: item.email,
+        celular: item.celular,
+        telefone: item.telefone || item.celular,
+        genero: item.genero || item.sexo,
+        data_nascimento: item.data_nascimento,
+        estado_civil: item.estado_civil,
+        profissao: item.profissao,
+        endereco_completo: item.endereco || item.endereco_completo,
+        cidade: item.cidade,
+        estado: item.estado || item.uf,
+        cep: item.cep,
+        igreja_id: currentUser?.igreja_id,
+        grupo_id: currentUser?.grupo_id,
+        funcao_igreja: item.funcao || 'Membro',
+        situacao: 'ativo',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+
+      // Inserir no banco usando lotes
+      const batchSize = 50;
+      let totalImportados = 0;
+
+      for (let i = 0; i < membrosParaInserir.length; i += batchSize) {
+        const batch = membrosParaInserir.slice(i, i + batchSize);
+        
+        const { data, error } = await supabase
+          .from('membros')
+          .insert(batch)
+          .select();
+
+        if (error) {
+          console.error('Erro no lote:', error);
+          throw error;
+        }
+
+        totalImportados += data?.length || 0;
+        console.log(`✅ Lote ${Math.floor(i/batchSize) + 1} importado: ${data?.length} membros`);
+      }
+
+      // Registrar log da importação
+      await supabase.rpc('inserir_log_basico', {
+        p_tipo_operacao: 'IMPORTACAO_MEMBROS',
+        p_detalhes: {
+          arquivo: file.name,
+          total_processados: dados.length,
+          total_importados: totalImportados,
+          usuario: currentUser?.nome,
+          igreja: currentUser?.igreja
+        },
+        p_usuario_id: currentUser?.id
+      });
+
+      setStep(4);
+      showMessage?.('success', `${totalImportados} membros importados com sucesso!`);
+      
+      // Atualizar estatísticas
+      setEstatisticas(prev => ({
+        ...prev,
+        total_membros: prev.total_membros + totalImportados,
+        importados_hoje: prev.importados_hoje + totalImportados,
+        ultima_importacao: new Date().toISOString()
+      }));
+
+      console.log(`🎉 Importação concluída: ${totalImportados} membros salvos no PostgreSQL`);
+
+    } catch (error) {
+      console.error('❌ Erro na importação:', error);
+      showMessage?.('error', `Erro na importação: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetImportacao = () => {
+    setFile(null);
+    setDados([]);
+    setDadosValidados([]);
+    setStep(1);
+  };
+
+  // =============================================================================
+  // 🎨 COMPONENTES DE INTERFACE
+  // =============================================================================
+
+  // Cards de estatísticas
+  const CardsEstatisticas = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-600">Total de Membros</p>
+            <p className="text-2xl font-bold text-gray-800">{estatisticas.total_membros}</p>
+          </div>
+          <Users className="h-8 w-8 text-blue-500" />
+        </div>
       </div>
 
-      {/* Messages */}
-      {message.text && (
-        <div className={`p-4 rounded-lg border ${
-          message.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' :
-          message.type === 'error' ? 'bg-red-50 text-red-800 border-red-200' :
-          'bg-yellow-50 text-yellow-800 border-yellow-200'
-        }`}>
-          <div className="flex items-center">
-            {message.type === 'success' && <CheckCircle className="h-5 w-5 mr-2" />}
-            {message.type === 'error' && <AlertCircle className="h-5 w-5 mr-2" />}
-            {message.type === 'warning' && <Info className="h-5 w-5 mr-2" />}
-            {message.text}
+      <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-green-500">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-600">Importados Hoje</p>
+            <p className="text-2xl font-bold text-gray-800">{estatisticas.importados_hoje}</p>
           </div>
+          <Upload className="h-8 w-8 text-green-500" />
         </div>
-      )}
-
-      {/* Progress Steps */}
-      <div className="flex items-center justify-center space-x-4 mb-8">
-        {[
-          { id: 'upload', label: 'Upload', icon: Upload },
-          { id: 'preview', label: 'Preview', icon: Eye },
-          { id: 'importing', label: 'Importando', icon: RefreshCw },
-          { id: 'completed', label: 'Concluído', icon: Check }
-        ].map((step, index) => {
-          const Icon = step.icon;
-          const isActive = currentStep === step.id;
-          const isCompleted = ['upload', 'preview', 'importing', 'completed'].indexOf(currentStep) > index;
-          
-          return (
-            <div key={step.id} className="flex items-center">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                isActive ? 'bg-blue-600 text-white' :
-                isCompleted ? 'bg-green-600 text-white' :
-                'bg-gray-200 text-gray-600'
-              }`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <span className={`ml-2 text-sm font-medium ${
-                isActive ? 'text-blue-600' :
-                isCompleted ? 'text-green-600' :
-                'text-gray-500'
-              }`}>
-                {step.label}
-              </span>
-              {index < 3 && <div className="w-8 h-px bg-gray-300 mx-4" />}
-            </div>
-          );
-        })}
       </div>
 
-      {/* Step Content */}
-      {currentStep === 'upload' && (
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="text-center">
-              <div className="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
-                <FileSpreadsheet className="h-12 w-12 text-blue-600" />
-              </div>
-              
-              <h3 className="text-xl font-semibold mb-4">Selecione o arquivo Excel</h3>
-              <p className="text-gray-600 mb-6">
-                Faça upload da planilha com os dados dos membros da Nova Brasília I
-              </p>
-
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-blue-400 transition-colors">
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-700">
-                    Clique para selecionar ou arraste o arquivo aqui
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Formatos suportados: .xlsx, .xls
-                  </p>
-                </label>
-              </div>
-
-              {selectedFile && (
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <div className="flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-blue-600 mr-2" />
-                    <span className="font-medium text-blue-800">{selectedFile.name}</span>
-                  </div>
-                  {loading && (
-                    <div className="mt-3 flex items-center justify-center text-blue-600">
-                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                      Processando arquivo...
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+      <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-purple-500">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-600">Última Importação</p>
+            <p className="text-sm font-bold text-gray-800">
+              {estatisticas.ultima_importacao 
+                ? new Date(estatisticas.ultima_importacao).toLocaleDateString('pt-BR')
+                : 'Nunca'
+              }
+            </p>
           </div>
+          <Database className="h-8 w-8 text-purple-500" />
         </div>
-      )}
+      </div>
+    </div>
+  );
 
-      {currentStep === 'preview' && detectedPattern && (
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center justify-between mb-6">
+  // Etapa 1: Upload do arquivo
+  const EtapaUpload = () => (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h3 className="text-lg font-semibold mb-4">1. Selecionar Arquivo</h3>
+      
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+        <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-lg font-medium text-gray-900 mb-2">
+          Arraste e solte seu arquivo aqui
+        </p>
+        <p className="text-gray-600 mb-4">
+          Ou clique para selecionar arquivo
+        </p>
+        
+        <input
+          type="file"
+          accept=".csv,.json,.xlsx"
+          onChange={handleFileUpload}
+          className="hidden"
+          id="file-upload"
+        />
+        <label
+          htmlFor="file-upload"
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 cursor-pointer inline-block"
+        >
+          Selecionar Arquivo
+        </label>
+        
+        <div className="mt-4 text-sm text-gray-500">
+          Formatos suportados: CSV, JSON, Excel (.xlsx)
+        </div>
+      </div>
+
+      <div className="mt-6 bg-blue-50 p-4 rounded-lg">
+        <h4 className="font-medium text-blue-900 mb-2">Campos Esperados:</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-blue-800">
+          <span>• nome_completo</span>
+          <span>• email</span>
+          <span>• celular</span>
+          <span>• genero</span>
+          <span>• data_nascimento</span>
+          <span>• cidade</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Etapa 2: Preview dos dados
+  const EtapaPreview = () => (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">2. Visualizar Dados ({dados.length} registros)</h3>
+        <button
+          onClick={validarDados}
+          disabled={loading}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center"
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <Check className="h-4 w-4 mr-2" />
+          )}
+          Validar Dados
+        </button>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full border border-gray-200 rounded-lg">
+          <thead className="bg-gray-50">
+            <tr>
+              {dados.length > 0 && Object.keys(dados[0]).map(key => (
+                <th key={key} className="p-3 text-left border-b text-sm font-medium text-gray-700">
+                  {key}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {dados.slice(0, 5).map((item, index) => (
+              <tr key={index} className="border-b">
+                {Object.values(item).map((value, i) => (
+                  <td key={i} className="p-3 text-sm text-gray-600">
+                    {String(value).substring(0, 50)}
+                    {String(value).length > 50 && '...'}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {dados.length > 5 && (
+        <p className="text-sm text-gray-500 mt-2">
+          Mostrando 5 de {dados.length} registros
+        </p>
+      )}
+    </div>
+  );
+
+  // Etapa 3: Validação
+  const EtapaValidacao = () => {
+    const validCount = dadosValidados.filter(d => d.valid).length;
+    const invalidCount = dadosValidados.length - validCount;
+
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">3. Validação dos Dados</h3>
+          <button
+            onClick={importarMembros}
+            disabled={loading || validCount === 0}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Database className="h-4 w-4 mr-2" />
+            )}
+            Importar para PostgreSQL
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <div className="flex items-center">
+              <CheckCircle className="h-8 w-8 text-green-500 mr-3" />
               <div>
-                <h3 className="text-2xl font-semibold flex items-center">
-                  <span className="text-2xl mr-2">{importPatterns[detectedPattern].icon}</span>
-                  {importPatterns[detectedPattern].name}
-                </h3>
-                <p className="text-gray-600">{importPatterns[detectedPattern].description}</p>
-              </div>
-              <div className={`px-4 py-2 rounded-full text-sm font-medium ${
-                importPatterns[detectedPattern].color === 'blue' ? 'bg-blue-100 text-blue-800' :
-                importPatterns[detectedPattern].color === 'green' ? 'bg-green-100 text-green-800' :
-                importPatterns[detectedPattern].color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-purple-100 text-purple-800'
-              }`}>
-                Padrão Detectado
+                <p className="text-lg font-bold text-green-800">{validCount}</p>
+                <p className="text-sm text-green-600">Registros Válidos</p>
               </div>
             </div>
+          </div>
 
-            {/* Estatísticas */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-              <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <Users className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-blue-800">{importStats.total}</div>
-                <div className="text-sm text-blue-600">Total</div>
-              </div>
-              <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-blue-800">{importStats.adultos}</div>
-                <div className="text-sm text-blue-600">Adultos</div>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-green-800">{importStats.jovens}</div>
-                <div className="text-sm text-green-600">Jovens</div>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-yellow-800">{importStats.criancas}</div>
-                <div className="text-sm text-yellow-600">Crianças</div>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-lg text-center">
-                <UserPlus className="h-6 w-6 text-purple-600 mx-auto mb-2" />
-                <div className="text-xs font-medium text-purple-800">{importStats.responsavel}</div>
-                <div className="text-xs text-purple-600">Responsável</div>
+          <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+            <div className="flex items-center">
+              <AlertCircle className="h-8 w-8 text-red-500 mr-3" />
+              <div>
+                <p className="text-lg font-bold text-red-800">{invalidCount}</p>
+                <p className="text-sm text-red-600">Registros com Erro</p>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Preview dos dados */}
-            <div className="mb-6">
-              <h4 className="text-lg font-semibold mb-4">Preview dos Dados ({importData.length} registros)</h4>
-              <div className="max-h-96 overflow-y-auto border rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Função</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Classificação</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grupo</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {importData.slice(0, 10).map((member, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{member.nome}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{member.telefone}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{member.funcao}</td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getClassificationColor(member.classificacao)}`}>
-                            {member.classificacao}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{member.grupo}</td>
-                      </tr>
+        {invalidCount > 0 && (
+          <div className="mt-4">
+            <h4 className="font-medium text-red-900 mb-2">Registros com Problemas:</h4>
+            <div className="max-h-64 overflow-y-auto">
+              {dadosValidados.filter(d => !d.valid).map((item, index) => (
+                <div key={index} className="bg-red-50 p-3 rounded border border-red-200 mb-2">
+                  <p className="font-medium">Registro {index + 1}: {item.nome_completo}</p>
+                  <ul className="text-sm text-red-600 ml-4">
+                    {item.errors.map((error, i) => (
+                      <li key={i}>• {error}</li>
                     ))}
-                  </tbody>
-                </table>
-                {importData.length > 10 && (
-                  <div className="p-4 bg-gray-50 text-center text-sm text-gray-600">
-                    ... e mais {importData.length - 10} registros
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Ações */}
-            <div className="flex justify-between">
-              <button
-                onClick={resetImport}
-                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Selecionar Outro Arquivo
-              </button>
-              <button
-                onClick={handleImport}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
-              >
-                <Zap className="h-4 w-4 mr-2" />
-                Importar {importStats.total} Membros
-              </button>
+                  </ul>
+                </div>
+              ))}
             </div>
           </div>
+        )}
+      </div>
+    );
+  };
+
+  // Etapa 4: Sucesso
+  const EtapaSucesso = () => (
+    <div className="bg-white p-6 rounded-lg shadow-md text-center">
+      <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+      <h3 className="text-xl font-bold text-gray-900 mb-2">Importação Concluída!</h3>
+      <p className="text-gray-600 mb-6">
+        Os membros foram importados com sucesso para o PostgreSQL
+      </p>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <p className="text-2xl font-bold text-blue-600">{dados.length}</p>
+          <p className="text-sm text-blue-600">Total Processados</p>
         </div>
-      )}
-
-      {currentStep === 'importing' && (
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <div className="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
-              <RefreshCw className="h-12 w-12 text-blue-600 animate-spin" />
-            </div>
-            <h3 className="text-xl font-semibold mb-4">Importando Membros...</h3>
-            <p className="text-gray-600 mb-6">
-              Processando {importStats.total} registros da Nova Brasília I
-            </p>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
-            </div>
-            <p className="text-sm text-gray-500 mt-2">Salvando no sistema...</p>
-          </div>
+        <div className="bg-green-50 p-4 rounded-lg">
+          <p className="text-2xl font-bold text-green-600">
+            {dadosValidados.filter(d => d.valid).length}
+          </p>
+          <p className="text-sm text-green-600">Importados</p>
         </div>
-      )}
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <p className="text-2xl font-bold text-purple-600">{estatisticas.total_membros}</p>
+          <p className="text-sm text-purple-600">Total no Sistema</p>
+        </div>
+      </div>
 
-      {currentStep === 'completed' && (
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
-              <CheckCircle className="h-12 w-12 text-green-600" />
-            </div>
-            <h3 className="text-xl font-semibold mb-4">Importação Concluída!</h3>
-            <p className="text-gray-600 mb-6">
-              {importStats.total} membros da Nova Brasília I foram importados com sucesso
-            </p>
+      <button
+        onClick={resetImportacao}
+        className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+      >
+        Nova Importação
+      </button>
+    </div>
+  );
 
-            <div className="bg-green-50 rounded-lg p-4 mb-6">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="text-center">
-                  <div className="font-semibold text-green-800">{importStats.adultos}</div>
-                  <div className="text-green-600">Adultos</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-semibold text-green-800">{importStats.jovens}</div>
-                  <div className="text-green-600">Jovens</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-semibold text-green-800">{importStats.criancas}</div>
-                  <div className="text-green-600">Crianças</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-semibold text-green-800">1</div>
-                  <div className="text-green-600">Responsável</div>
-                </div>
-              </div>
-            </div>
+  // =============================================================================
+  // 🎨 RENDER PRINCIPAL
+  // =============================================================================
+  
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white p-6 rounded-lg">
+        <h2 className="text-2xl font-bold mb-2">📥 Importação de Membros</h2>
+        <p className="opacity-90">
+          Importar membros para o PostgreSQL - {currentUser?.igreja}
+        </p>
+        <div className="mt-2 text-sm opacity-75">
+          Sistema conectado ao banco de dados - Dados salvos em tempo real
+        </div>
+      </div>
 
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={resetImport}
-                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Nova Importação
-              </button>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Ver Membros Importados
-              </button>
-            </div>
-          </div>
+      {/* Cards de estatísticas */}
+      <CardsEstatisticas />
+
+      {/* Progresso */}
+      <div className="bg-white p-4 rounded-lg shadow-md">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium">Progresso da Importação</span>
+          <span className="text-sm text-gray-500">Etapa {step} de 4</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+            style={{ width: `${(step / 4) * 100}%` }}
+          ></div>
+        </div>
+      </div>
+
+      {/* Conteúdo baseado na etapa */}
+      {step === 1 && <EtapaUpload />}
+      {step === 2 && <EtapaPreview />}
+      {step === 3 && <EtapaValidacao />}
+      {step === 4 && <EtapaSucesso />}
+
+      {/* Botões de ação */}
+      {step > 1 && step < 4 && (
+        <div className="flex justify-between">
+          <button
+            onClick={resetImportacao}
+            className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+          >
+            Cancelar
+          </button>
         </div>
       )}
     </div>
